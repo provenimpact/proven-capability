@@ -37,7 +37,7 @@
         "properties": {
           "constraint": {
             "type": "string",
-            "description": "The constraint text from docs/constraints.adoc."
+            "description": "The constraint text from docs/constraints.yaml."
           },
           "category": {
             "type": "string",

@@ -2,7 +2,7 @@
 
 == Context
 
-The project has an accepted ADR (`docs/adrs/0004-adopt-tdd.adoc`) recording the decision to use TDD. The test framework is Vitest (detected from `vitest.config.ts`).
+The project has an accepted ADR (`docs/adrs/0004-adopt-tdd.yaml`) recording the decision to use TDD. The test framework is Vitest (detected from `vitest.config.ts`).
 
 This example shows test derivation for the `product-browsing` feature from `docs/features/product-browsing/spec.yaml`.
 
@@ -127,6 +127,6 @@ Adopt TDD. Tests are derived from feature specifications (`spec.yaml`) before im
 
 - `needs-tests` is included in the feature pipeline (after `needs-features`, before or alongside `needs-implementation`)
 - Tests serve as the acceptance gate for implementation
-- Test coverage constraints in `docs/constraints.adoc` are enforced
+- Test coverage constraints in `docs/constraints.yaml` are enforced
 - Adds a step to each feature transition but increases confidence in correctness
 ....

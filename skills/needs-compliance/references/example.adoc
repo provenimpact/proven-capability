@@ -7,7 +7,7 @@ This file shows a license compliance audit and remediation cycle.
 Given:
 
 * TypeScript/Next.js project with 47 dependencies
-* `docs/constraints.adoc` with licensing constraint: "Only MIT, Apache-2.0, and BSD-licensed dependencies are permitted"
+* `docs/constraints.yaml` with licensing constraint (C-005): "Only MIT, Apache-2.0, and BSD-licensed dependencies are permitted"
 
 == Observation
 

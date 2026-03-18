@@ -34,7 +34,7 @@ Scan the project's test directories for existing test files related to this feat
 
 ### 4. Read constraints
 
-Read `docs/constraints.adoc`. Identify quality constraints relevant to testing (coverage thresholds, test requirements).
+Read `docs/constraints.yaml`. Identify quality constraints relevant to testing (coverage thresholds, test requirements).
 
 ### 5. Analyze test infrastructure
 

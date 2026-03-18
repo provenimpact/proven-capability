@@ -13,7 +13,7 @@ This file demonstrates three complete state transitions: a feature evolution int
 ....
 Current state:
   Features: 0 (no feature packages exist)
-  Constraints: docs/constraints.adoc exists with 6 rules
+  Constraints: docs/constraints.yaml exists with 10 rules
   ADRs: 0 (TDD: not adopted)
   Architecture: none
   Codebase: empty project, package.json with Next.js scaffold
@@ -261,8 +261,8 @@ Detected as constraint because:
 
 === Execute
 
-1. Add to `docs/constraints.adoc` under Security section
-2. Bump `docs/constraints.adoc` version (MINOR)
+1. Add to `docs/constraints.yaml` under Security category with next available ID
+2. Bump `docs/constraints.yaml` version (MINOR). Run `node scripts/validate-constraints.js`
 3. Check existing codebase: current API endpoints do NOT have rate limiting
 4. Report constraint violation to user:
 +
@@ -289,5 +289,5 @@ Would you like to remediate now?
 :capabilities-invoked: (constraint update) + needs-implementation (if remediated)
 :constraints-checked: n/a (this IS a constraint addition)
 :result: Achieved
-:artifacts-modified: docs/constraints.adoc, rate-limiting middleware, route handlers
+:artifacts-modified: docs/constraints.yaml, rate-limiting middleware, route handlers
 ....

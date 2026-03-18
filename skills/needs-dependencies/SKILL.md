@@ -39,7 +39,7 @@ For each dependency:
 
 ### 3. Read constraints
 
-Read `docs/constraints.adoc`. Identify:
+Read `docs/constraints.yaml`. Identify:
 - **Security constraints** (e.g., "No dependency with a known CRITICAL or HIGH CVE may remain unpatched for more than 7 days")
 - **Licensing constraints** (e.g., "Only MIT, Apache-2.0, and BSD-licensed dependencies are permitted")
 

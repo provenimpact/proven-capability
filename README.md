@@ -88,7 +88,7 @@ flowchart LR
     INTENT -.->|update design| DESIGN
     INTENT -.->|fix code| IMPL
 
-    CONSTRAINTS[("docs/constraints.adoc<br/><i>Checked at every step</i>")] -.->|enforced| feature
+    CONSTRAINTS[("docs/constraints.yaml<br/><i>Checked at every step</i>")] -.->|enforced| feature
     CONSTRAINTS -.->|enforced| project
 
     style INTENT fill:#4CAF50,color:#fff,stroke:none
@@ -137,16 +137,16 @@ flowchart LR
 
 | Capability | Reads | Writes |
 |---|---|---|
-| `needs-features` | `constraints.adoc` | `spec.yaml` |
-| `needs-design` | `spec.yaml`, ADRs, `constraints.adoc`, `architecture.adoc` | `design.adoc`, `data-model.adoc`, `contracts/` |
-| `needs-tasks` | `design.adoc` (or `spec.yaml` as fallback), `constraints.adoc` | `tasks.adoc` |
-| `needs-tests` | `spec.yaml`, `design.adoc`, `constraints.adoc` | test files |
-| `needs-implementation` | `tasks.adoc` (or `design.adoc` as fallback), `spec.yaml`, `constraints.adoc`, ADRs | source code |
-| `needs-adr` | existing ADRs | `docs/adrs/*.adoc`, `index.adoc` |
-| `needs-architecture` | all feature designs, ADRs, `docs/constraints.adoc`, codebase | `docs/architecture.adoc` |
-| `needs-dependencies` | package manifests, `docs/constraints.adoc` | package manifests, lockfiles |
-| `needs-security` | codebase, dependencies, config, `docs/constraints.adoc` | source code, config |
-| `needs-compliance` | dependencies, `docs/constraints.adoc` | dependencies, `docs/constraints.adoc` |
+| `needs-features` | `constraints.yaml` | `spec.yaml` |
+| `needs-design` | `spec.yaml`, ADRs, `constraints.yaml`, `architecture.adoc` | `design.adoc`, `data-model.adoc`, `contracts/` |
+| `needs-tasks` | `design.adoc` (or `spec.yaml` as fallback), `constraints.yaml` | `tasks.adoc` |
+| `needs-tests` | `spec.yaml`, `design.adoc`, `constraints.yaml` | test files |
+| `needs-implementation` | `tasks.adoc` (or `design.adoc` as fallback), `spec.yaml`, `constraints.yaml`, ADRs | source code |
+| `needs-adr` | existing ADRs | `docs/adrs/*.yaml`, `index.yaml` |
+| `needs-architecture` | all feature designs, ADRs, `docs/constraints.yaml`, codebase | `docs/architecture.adoc` |
+| `needs-dependencies` | package manifests, `docs/constraints.yaml` | package manifests, lockfiles |
+| `needs-security` | codebase, dependencies, config, `docs/constraints.yaml` | source code, config |
+| `needs-compliance` | dependencies, `docs/constraints.yaml` | dependencies, `docs/constraints.yaml` |
 
 ## Entry Point
 
@@ -174,7 +174,7 @@ A declarative statement of what must be true. Not a task list -- an intent.
 - "All API endpoints enforce rate limiting" (constraint)
 
 ### Constraints
-Project-wide invariants that must not be violated. Defined in `docs/constraints.adoc`:
+Project-wide invariants that must not be violated. Defined in `docs/constraints.yaml`:
 
 - License compliance rules
 - Security policies
@@ -287,12 +287,12 @@ flowchart TD
 
 | Artifact | Location | Lifecycle |
 |---|---|---|
-| Constraints | `docs/constraints.adoc` | Stable, changes rarely |
+| Constraints | `docs/constraints.yaml` | Stable, changes rarely |
 | Feature spec | `docs/features/<slug>/spec.yaml` | Living, schema-validated |
 | Design | `docs/features/<slug>/design.adoc` | Living, synced with spec.yaml |
 | Tasks | `docs/features/<slug>/tasks.adoc` | Ephemeral -- disposable once implementation verified |
 | Tests | project test directories | Living (opt-in, requires TDD ADR) |
-| ADRs | `docs/adrs/NNNN-title.adoc` | Permanent, append-only |
+| ADRs | `docs/adrs/NNNN-title.yaml` | Permanent, append-only |
 | Architecture | `docs/architecture.adoc` | Living, reflects current system |
 | State Log | `docs/state-log.adoc` | Append-only audit trail |
 | Code | project source | Living -- the actual system |
@@ -317,13 +317,18 @@ When `spec.yaml` changes, the design may become stale. When the design changes, 
 
 ## Validation
 
-Feature specs are machine-validated at two levels:
+All structured artifacts (feature specs, constraints, ADRs) are machine-validated with JSON schemas and consistency scripts:
 
-1. **JSON Schema** (`skills/needs-features/schemas/feature-spec.schema.json`) -- validates structure, types, ID formats, required fields
-2. **Consistency script** (`scripts/validate-specs.js`) -- validates ID uniqueness, sequential numbering, prefix consistency, EARS pattern compliance, cross-feature prefix uniqueness
+| Artifact | Schema | Validation Script |
+|---|---|---|
+| Feature specs | `skills/needs-features/schemas/feature-spec.schema.json` | `scripts/validate-specs.js` |
+| Constraints | `skills/proven-needs/schemas/constraints.schema.json` | `scripts/validate-constraints.js` |
+| ADRs | `skills/needs-adr/schemas/adr.schema.json` + `adr-index.schema.json` | `scripts/validate-adrs.js` |
 
 ```
 node scripts/validate-specs.js docs/features/*/spec.yaml
+node scripts/validate-constraints.js docs/constraints.yaml
+node scripts/validate-adrs.js docs/adrs/
 ```
 
 ## Risk Classification

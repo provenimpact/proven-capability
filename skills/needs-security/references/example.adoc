@@ -7,7 +7,7 @@ This file shows a security assessment and remediation cycle.
 Given:
 
 * TypeScript/Next.js e-commerce application
-* `docs/constraints.adoc` with security constraints:
+* `docs/constraints.yaml` with security constraints:
   - "All user input must be validated before processing"
   - "No dependency with a known CRITICAL or HIGH CVE may remain unpatched for more than 7 days"
 

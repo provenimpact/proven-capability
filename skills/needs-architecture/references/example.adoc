@@ -42,7 +42,7 @@ C4Context
   Rel(ecommerce, email, "Sends order confirmations", "HTTPS/JSON")
 ----
 
-The system serves customers through a web interface. It integrates with Stripe for payment processing (<<adrs/0004-use-stripe.adoc#,ADR-0004>>) and an external email service for order confirmation delivery.
+The system serves customers through a web interface. It integrates with Stripe for payment processing (ADR-0004) and an external email service for order confirmation delivery.
 
 == Container View (C4 Level 2)
 
@@ -77,19 +77,19 @@ Technology choices:
 
 | Language
 | TypeScript
-| <<adrs/0001-use-typescript.adoc#,ADR-0001>>: Shared across frontend and backend
+| ADR-0001: Shared across frontend and backend
 
 | Framework
 | Next.js
-| <<adrs/0003-use-nextjs.adoc#,ADR-0003>>: SSR for SEO, API routes for backend
+| ADR-0003: SSR for SEO, API routes for backend
 
 | Database
 | PostgreSQL
-| <<adrs/0002-use-postgresql.adoc#,ADR-0002>>: ACID compliance for transactions
+| ADR-0002: ACID compliance for transactions
 
 | Payments
 | Stripe
-| <<adrs/0004-use-stripe.adoc#,ADR-0004>>: PCI compliance, hosted checkout
+| ADR-0004: PCI compliance, hosted checkout
 |===
 
 == Component View (C4 Level 3)
@@ -133,10 +133,10 @@ Architecture constraint: Business logic resides in the service layer (CartServic
 
 == Technology Stack
 
-* <<adrs/0001-use-typescript.adoc#,ADR-0001>>: TypeScript (backend and frontend)
-* <<adrs/0002-use-postgresql.adoc#,ADR-0002>>: PostgreSQL (persistence)
-* <<adrs/0003-use-nextjs.adoc#,ADR-0003>>: Next.js (fullstack framework)
-* <<adrs/0004-use-stripe.adoc#,ADR-0004>>: Stripe (payment processing)
+* ADR-0001: TypeScript (backend and frontend) -- see docs/adrs/0001-use-typescript.yaml
+* ADR-0002: PostgreSQL (persistence) -- see docs/adrs/0002-use-postgresql.yaml
+* ADR-0003: Next.js (fullstack framework) -- see docs/adrs/0003-use-nextjs.yaml
+* ADR-0004: Stripe (payment processing) -- see docs/adrs/0004-use-stripe.yaml
 
 == Data Architecture
 

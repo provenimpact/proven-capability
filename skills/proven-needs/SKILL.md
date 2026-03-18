@@ -30,7 +30,7 @@ The observable, verifiable reality of the system right now. Computed fresh each 
 **Artifact state:**
 - Which feature packages exist in `docs/features/`
 - For each feature: which artifacts exist (`spec.yaml`, design, tasks), their versions, statuses
-- Project-wide artifacts: `docs/constraints.adoc`, `docs/adrs/`, `docs/architecture.adoc`, `docs/state-log.adoc`
+- Project-wide artifacts: `docs/constraints.yaml`, `docs/adrs/`, `docs/architecture.adoc`, `docs/state-log.adoc`
 - Staleness: has `spec.yaml` changed since design was last updated? (detected via `:source-spec-version:`)
 
 **Codebase state:**
@@ -54,7 +54,7 @@ Examples:
 
 ### Constraints (Invariants)
 
-Rules that must not be violated across any transition. Defined in `docs/constraints.adoc`. See the Constraints section below for the full specification.
+Rules that must not be violated across any transition. Defined in `docs/constraints.yaml`. See the Constraints section below for the full specification.
 
 ### Feature Package
 
@@ -129,7 +129,7 @@ When this skill is invoked, immediately build the current state model:
 
 #### 1.1 Read project-wide artifacts
 
-1. **`docs/constraints.adoc`** -- read all constraint categories and rules. If missing, note that no constraints are defined. Do not create it automatically -- the user declares constraints intentionally.
+1. **`docs/constraints.yaml`** -- read all constraint categories and rules. If missing, note that no constraints are defined. Do not create it automatically -- the user declares constraints intentionally.
 
 2. **`docs/features/`** -- list all feature directories. For each, check which artifacts exist (`spec.yaml`, `design.adoc`, `tasks.adoc`). Features with `:status: Archived` in `spec.yaml` are reported in the summary but skipped during intent classification and staleness checks.
 
@@ -193,9 +193,9 @@ Before proceeding with feature decomposition, check whether the intent is actual
 4. **Future-proof** -- it would apply to features that don't exist yet
 
 If the intent is a constraint:
-- Propose adding it to `docs/constraints.adoc` with the appropriate category
+- Propose adding it to `docs/constraints.yaml` with the appropriate category
 - Ask the user to confirm
-- If confirmed, update `docs/constraints.adoc` and record the transition in the state log
+- If confirmed, update `docs/constraints.yaml` and record the transition in the state log
 - Do not create a feature package
 
 If uncertain, ask the user:
@@ -324,7 +324,7 @@ While deriving stories and requirements, if a requirement is identified as cross
    This applies to registration, password reset, and any future password feature.
 
    Options:
-     1. Add to docs/constraints.adoc (recommended -- enforced everywhere)
+     1. Add to docs/constraints.yaml (recommended -- enforced everywhere)
      2. Keep as feature requirement (only enforced in this feature)
    ```
 
@@ -344,7 +344,7 @@ If preconditions are unmet, the orchestrator can satisfy them as part of the tra
 
 #### 3.2 Constraint check
 
-Test the proposed transition against all constraints in `docs/constraints.adoc`:
+Test the proposed transition against all constraints in `docs/constraints.yaml`:
 - Would any constraint be violated by the proposed changes?
 - Are there existing constraint violations that should be resolved first?
 
@@ -526,38 +526,56 @@ Transitions are classified by risk level:
 
 ### File location and format
 
-`docs/constraints.adoc`:
+`docs/constraints.yaml`, validated by `skills/proven-needs/schemas/constraints.schema.json`:
 
-```asciidoc
-= Project Constraints
-:version: 1.0.0
-:last-updated: YYYY-MM-DD
+```yaml
+# yaml-language-server: $schema=../../skills/proven-needs/schemas/constraints.schema.json
 
-== Security
+version: "1.0.0"
+last_updated: "YYYY-MM-DD"
 
-* Passwords must be at least 8 characters with mixed case and numbers.
-* All user sessions must expire after 24 hours of inactivity.
-* No dependency with a known CRITICAL or HIGH CVE may remain unpatched for more than 7 days.
-* All user input must be validated before processing.
+categories:
+  - name: Security
+    constraints:
+      - id: C-001
+        text: Passwords must be at least 8 characters with mixed case and numbers.
+      - id: C-002
+        text: All user sessions must expire after 24 hours of inactivity.
+      - id: C-003
+        text: >-
+          No dependency with a known CRITICAL or HIGH CVE may remain
+          unpatched for more than 7 days.
+      - id: C-004
+        text: All user input must be validated before processing.
 
-== Licensing
+  - name: Licensing
+    constraints:
+      - id: C-005
+        text: Only MIT, Apache-2.0, and BSD-licensed dependencies are permitted.
 
-* Only MIT, Apache-2.0, and BSD-licensed dependencies are permitted.
+  - name: Architecture
+    constraints:
+      - id: C-006
+        text: Business logic resides in the service layer, not in route handlers.
+      - id: C-007
+        text: No direct database access from UI components.
 
-== Architecture
+  - name: Quality
+    constraints:
+      - id: C-008
+        text: Test coverage must not decrease per feature implementation.
+      - id: C-009
+        text: All code passes linting and type checking.
 
-* Business logic resides in the service layer, not in route handlers.
-* No direct database access from UI components.
-
-== Quality
-
-* Test coverage must not decrease per feature implementation.
-* All code passes linting and type checking.
-
-== Performance
-
-* API P95 response time must remain below 200ms.
+  - name: Performance
+    constraints:
+      - id: C-010
+        text: API P95 response time must remain below 200ms.
 ```
+
+**Validation:** `node scripts/validate-constraints.js docs/constraints.yaml`
+
+Each constraint has a unique ID (C-001, C-002, ...) for traceability. Constraint IDs are sequential across the entire file, not within categories.
 
 ### Constraint lifecycle
 

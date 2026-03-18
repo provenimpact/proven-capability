@@ -25,7 +25,7 @@ Read `docs/features/<slug>/spec.yaml`. Extract:
 ### 2. Read project-wide artifacts
 
 - **`docs/adrs/`** -- read all ADRs with status `Accepted`. These are technology constraints.
-- **`docs/constraints.adoc`** -- read all constraints, particularly architecture and quality constraints.
+- **`docs/constraints.yaml`** -- read all constraints, particularly architecture and quality constraints.
 - **`docs/architecture.adoc`** -- if it exists, understand the current system architecture for context.
 
 ### 3. Read existing design
@@ -129,7 +129,7 @@ Analyze the feature spec to identify:
 **For each technology decision not covered by an existing ADR:**
 1. Present the decision to the user with context, alternatives considered, and a recommendation
 2. Ask the user: "Should I create an ADR for this decision?"
-3. **If yes:** Load the `needs-adr` skill and create the ADR before proceeding. The design document will reference the new ADR (e.g., `<<../../adrs/NNNN-decision-title.adoc#,ADR-NNNN>>`).
+3. **If yes:** Load the `needs-adr` skill and create the ADR before proceeding. The design document will reference the new ADR by ID (e.g., `ADR-NNNN: Decision Title -- see docs/adrs/NNNN-decision-title.yaml`).
 4. **If no:** Record the decision in the design's "Decisions and Constraints" section with a brief rationale, but note that it is an unrecorded decision (not an ADR).
 
 **Do NOT skip this step.** Technology decisions made during design are the primary source of ADRs. If Phase 0 identifies decisions and the user agrees to create ADRs, the ADRs must be created before moving to Phase 1, so the design document can reference them.
@@ -221,8 +221,8 @@ Create `docs/features/<slug>/design.adoc`:
 
 <References to relevant ADRs. Summary of technology decisions made during Phase 0.>
 
-* <<../../adrs/0001-use-typescript.adoc#,ADR-0001>>: Use TypeScript
-* <<../../adrs/0002-use-postgresql.adoc#,ADR-0002>>: Use PostgreSQL
+* ADR-0001: Use TypeScript (see docs/adrs/0001-use-typescript.yaml)
+* ADR-0002: Use PostgreSQL (see docs/adrs/0002-use-postgresql.yaml)
 
 == Research and Unknowns
 
@@ -359,7 +359,7 @@ Before finalizing, verify:
 - Every user story from the spec is addressed in Requirement Resolution
 - Every requirement ID is mapped to at least one design element
 - All ADR decisions are respected in the design
-- All architecture constraints from `docs/constraints.adoc` are satisfied
+- All architecture constraints from `docs/constraints.yaml` are satisfied
 - No unresolved unknowns remain (or are explicitly listed)
 - Design is implementable (specific enough to code from)
 - Design does not depend on other feature designs

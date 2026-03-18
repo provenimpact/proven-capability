@@ -61,7 +61,7 @@ If `docs/features/<slug>/spec.yaml` exists:
 
 ### 3. Read constraints
 
-Read `docs/constraints.adoc`. Identify any constraints relevant to this feature's domain -- these must not be duplicated as requirements but should be noted in `constraint_notes`.
+Read `docs/constraints.yaml`. Identify any constraints relevant to this feature's domain -- these must not be duplicated as requirements but should be noted in `constraint_notes`.
 
 ### 4. Report observation
 
@@ -86,7 +86,7 @@ Given the desired state from the orchestrator, determine what action is needed.
 
 Verify that proposed requirements would not violate any constraints:
 - Requirements must be testable (quality constraint)
-- Requirements must not duplicate constraint-level rules (cross-cutting requirements belong in `docs/constraints.adoc`, not in the spec)
+- Requirements must not duplicate constraint-level rules (cross-cutting requirements belong in `docs/constraints.yaml`, not in the spec)
 - Each requirement must be scoped to this one feature (must not require knowledge of other features)
 
 ### 3. Report evaluation
@@ -287,7 +287,7 @@ flowchart TD
 3. For each existing requirement, check if its source story still makes sense
    - **Orphaned** -- story was removed -> mark for removal
 4. Check for requirements that now overlap with constraints added since last sync
-   - **Promoted to constraint** -- now covered by `docs/constraints.adoc` -> mark for removal
+   - **Promoted to constraint** -- now covered by `docs/constraints.yaml` -> mark for removal
 
 #### 2. Present change report
 

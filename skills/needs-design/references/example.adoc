@@ -7,10 +7,10 @@ This file shows a complete design document for the `shopping-cart` feature of an
 Given:
 
 * `docs/features/shopping-cart/spec.yaml` with stories US-001 (Add to Cart) and US-002 (View Cart), requirements CART-001 through CART-007
-* `docs/adrs/0001-use-typescript.adoc` (Accepted)
-* `docs/adrs/0002-use-postgresql.adoc` (Accepted)
-* `docs/adrs/0003-use-nextjs.adoc` (Accepted)
-* `docs/constraints.adoc` with architecture constraint: "Business logic resides in the service layer"
+* `docs/adrs/0001-use-typescript.yaml` (Accepted)
+* `docs/adrs/0002-use-postgresql.yaml` (Accepted)
+* `docs/adrs/0003-use-nextjs.yaml` (Accepted)
+* `docs/constraints.yaml` with architecture constraint: "Business logic resides in the service layer"
 
 == Design File (docs/features/shopping-cart/design.adoc)
 
@@ -29,9 +29,9 @@ Adding cart management to an existing e-commerce web application built with Next
 
 == Decisions and Constraints
 
-* <<../../adrs/0001-use-typescript.adoc#,ADR-0001>>: Use TypeScript for backend and frontend
-* <<../../adrs/0002-use-postgresql.adoc#,ADR-0002>>: Use PostgreSQL for persistence
-* <<../../adrs/0003-use-nextjs.adoc#,ADR-0003>>: Use Next.js as the fullstack framework
+* ADR-0001: Use TypeScript for backend and frontend (see docs/adrs/0001-use-typescript.yaml)
+* ADR-0002: Use PostgreSQL for persistence (see docs/adrs/0002-use-postgresql.yaml)
+* ADR-0003: Use Next.js as the fullstack framework (see docs/adrs/0003-use-nextjs.yaml)
 
 Architecture constraint: Business logic resides in the service layer, not in route handlers.
 

@@ -25,7 +25,7 @@ List all feature packages in `docs/features/`. For each, check if `design.adoc` 
 ### 3. Read project-wide artifacts
 
 - **`docs/adrs/`** -- read all ADRs with status `Accepted`
-- **`docs/constraints.adoc`** -- read architecture constraints
+- **`docs/constraints.yaml`** -- read architecture constraints
 
 ### 4. Analyze codebase
 
@@ -65,7 +65,7 @@ Given the desired state from the orchestrator, determine what action is needed.
 
 ### 3. Check constraints
 
-Verify that the architecture description will address all architecture constraints from `docs/constraints.adoc`.
+Verify that the architecture description will address all architecture constraints from `docs/constraints.yaml`.
 
 ### 4. Report evaluation
 
@@ -192,8 +192,8 @@ C4Deployment
 <Languages, frameworks, databases, infrastructure.
  Reference relevant ADRs for rationale.>
 
-* <<adrs/0001-use-typescript.adoc#,ADR-0001>>: TypeScript (backend and frontend)
-* <<adrs/0002-use-postgresql.adoc#,ADR-0002>>: PostgreSQL (persistence)
+* ADR-0001: TypeScript (backend and frontend) -- see docs/adrs/0001-use-typescript.yaml
+* ADR-0002: PostgreSQL (persistence) -- see docs/adrs/0002-use-postgresql.yaml
 
 == Data Architecture
 
@@ -252,7 +252,7 @@ Before finalizing, verify:
 - Component descriptions match the actual codebase (if one exists)
 - No empty sections remain (remove instead)
 - Data architecture covers all persistent data stores
-- Architecture constraints from `docs/constraints.adoc` are addressed
+- Architecture constraints from `docs/constraints.yaml` are addressed
 - Feature Design Sources table lists all feature designs and their current versions
 - Version and date are updated
 
