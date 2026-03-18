@@ -178,7 +178,7 @@ The structure depends on the project:
 If the feature involves persistent or structured data:
 - Entities and their attributes
 - Relationships between entities
-- Validation rules derived from specs
+- Validation rules derived from scenarios
 - State transitions (if applicable)
 
 Write this to a separate file `docs/features/<slug>/data-model.adoc` when the data model is non-trivial.

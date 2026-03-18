@@ -316,9 +316,9 @@ Name `.feature` files after the capability area they describe:
 - `cart-management.feature`
 - `checkout-payment.feature`
 
-### Multiple user stories in one feature file
+### Multiple perspectives in one feature file
 
-A single `.feature` file can contain scenarios that originated from multiple user stories. The `Feature:` description captures the primary user motivation. If scenarios from different stories share the same capability area, they belong in the same file.
+A single `.feature` file can contain scenarios that address multiple user motivations. The `Feature:` description captures the primary motivation. If scenarios from different perspectives share the same capability area, they belong in the same file.
 
 ### Splitting feature files
 

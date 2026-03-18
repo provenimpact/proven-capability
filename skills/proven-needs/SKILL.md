@@ -658,11 +658,11 @@ Auto-approved: Updated lodash 4.17.20 → 4.17.21 (CVE-XXXX patched). Tests pass
 
 ### Constraint lifecycle
 
-- **Adding:** User declares intent that is classified as constraint, or constraint is surfaced during spec derivation. Always requires user confirmation. MINOR version bump.
+- **Adding:** User declares intent that is classified as constraint, or constraint is surfaced during scenario authoring. Always requires user confirmation. MINOR version bump.
 - **Modifying:** User explicitly requests relaxing or tightening a rule. Requires user confirmation. MINOR or MAJOR bump depending on impact.
 - **Removing:** User explicitly requests removal. Requires confirmation with warning about enforcement loss. MAJOR version bump.
 
-Constraints are intentionally stable. Frequent constraint changes indicate they may be too specific (should be feature specs) or too vague (need refinement).
+Constraints are intentionally stable. Frequent constraint changes indicate they may be too specific (should be feature scenarios) or too vague (need refinement).
 
 ### Constraint enforcement
 

@@ -167,6 +167,18 @@ Then("each product should show its name, price, and image", async function () {
   // TODO: implement during needs-implementation
 });
 
+Then("each product should show its name", async function () {
+  // TODO: implement during needs-implementation
+});
+
+Then("each product should show its price", async function () {
+  // TODO: implement during needs-implementation
+});
+
+Then("each product should show its image", async function () {
+  // TODO: implement during needs-implementation
+});
+
 Then("I should see {string}", async function (text) {
   // TODO: implement during needs-implementation
 });
