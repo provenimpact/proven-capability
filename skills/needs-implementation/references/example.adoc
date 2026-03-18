@@ -1,6 +1,6 @@
 = Implementation Example
 
-This file walks through implementing Phase 1 (Foundation) of the shopping-cart feature task list. It demonstrates the per-phase cycle: build todo list, implement tasks, verify, commit, ask to continue.
+This file walks through implementing Phase 1 (Foundation) of the shopping-cart feature task list. It demonstrates the per-phase cycle: build todo list, implement step definitions, implement tasks, verify (including Cucumber), commit, ask to continue.
 
 == Context
 
@@ -9,15 +9,19 @@ Given:
 * `docs/features/shopping-cart/tasks.adoc` at version `1.0.0` with 3 phases, 9 tasks
 * `docs/features/shopping-cart/design.adoc` at version `1.0.0` with system design for cart management
 * `docs/features/shopping-cart/data-model.adoc` at version `1.0.0` with entities: Cart, CartItem
+* `docs/features/shopping-cart/cart-management.feature` with scenarios @CART-001 through @CART-005
+* `docs/features/shopping-cart/steps/cart.steps.js` with skeleton step definitions (TODO markers)
 * No tasks are ticked yet -- starting from Phase 1
 
 == Step 1: Read Inputs
 
 Read `docs/features/shopping-cart/tasks.adoc` -- status is `Current`, source-design-version is `1.0.0`. Proceed.
 
-Read `docs/features/shopping-cart/design.adoc` -- extract system design (frontend components, CartService, API routes), story resolution mappings, and architecture constraint (business logic in service layer).
+Read `docs/features/shopping-cart/design.adoc` -- extract system design (frontend components, CartService, API routes), scenario resolution mappings, and architecture constraint (business logic in service layer).
 
 Read `docs/features/shopping-cart/data-model.adoc` -- extract Cart and CartItem entity definitions.
+
+Read `docs/features/shopping-cart/cart-management.feature` -- extract scenarios and their spec ID tags for acceptance gate context.
 
 == Step 2: Check for Existing Progress
 
@@ -32,7 +36,97 @@ TodoWrite:
 - TASK-001: Create Cart and CartItem entities and migrations [pending]
 ....
 
-== Step 4: Implement Current Phase
+Phase 1 targets scenarios: @CART-001, @CART-003 (from TASK-001's `Scenarios::` field).
+
+== Step 4: Implement Step Definitions for Phase 1 Scenarios
+
+Before writing any production code, implement the step definitions for @CART-001 and @CART-003.
+
+Read `docs/features/shopping-cart/steps/cart.steps.js` -- find the skeleton step definitions with `// TODO` markers. Read the design document to understand the planned interfaces (Cart and CartItem models, CartService, API routes).
+
+Implement the step definitions for the steps used by @CART-001 and @CART-003 scenarios:
+
+* `docs/features/shopping-cart/steps/cart.steps.js`:
++
+[source,javascript]
+----
+import { Given, When, Then } from "@cucumber/cucumber";
+import assert from "node:assert";
+
+// --- Steps used by @CART-001 and @CART-003 scenarios ---
+
+Given("the following products exist:", async function (dataTable) {
+  const products = dataTable.hashes();
+  // Seed the test database with products
+  await this.db.query("DELETE FROM products");
+  for (const product of products) {
+    await this.db.query(
+      "INSERT INTO products (name, price) VALUES ($1, $2)",
+      [product.name, parseFloat(product.price)]
+    );
+  }
+});
+
+When("I add {string} to the cart", async function (productName) {
+  const response = await this.api.post("/api/cart/items", {
+    productName,
+  });
+  this.lastResponse = response;
+});
+
+Then("the cart count should be {int}", async function (expectedCount) {
+  const response = await this.api.get("/api/cart");
+  assert.strictEqual(response.body.items.length, expectedCount);
+});
+
+Then("I should see a confirmation {string}", async function (message) {
+  assert.strictEqual(this.lastResponse.body.message, message);
+});
+
+Given("{string} is in my cart with quantity {int}", async function (productName, quantity) {
+  // Add product to cart via API, then verify quantity
+  for (let i = 0; i < quantity; i++) {
+    await this.api.post("/api/cart/items", { productName });
+  }
+});
+
+When("I view my cart", async function () {
+  this.lastResponse = await this.api.get("/api/cart");
+});
+
+Then("I should see {int} distinct items", async function (count) {
+  assert.strictEqual(this.lastResponse.body.items.length, count);
+});
+
+Then("the cart total should be {float}", async function (expectedTotal) {
+  assert.strictEqual(this.lastResponse.body.total, expectedTotal);
+});
+
+// --- Steps used only by @CART-002, @CART-004, @CART-005 (future phases) ---
+// These remain as skeletons until their phases are reached.
+
+When("I change the quantity of {string} to {int}", async function (productName, quantity) {
+  // TODO: implement during Phase 2
+});
+
+When("I remove {string} from the cart", async function (productName) {
+  // TODO: implement during Phase 2
+});
+
+Then("{string} should have quantity {int} in my cart", async function (productName, quantity) {
+  // TODO: implement during Phase 2
+});
+
+Then("I should not see {string} in my cart", async function (productName) {
+  // TODO: implement during Phase 2
+});
+----
+
+Note: the step definitions for @CART-001 and @CART-003 are fully implemented with real database seeding, API calls, and assertions. The step definitions for scenarios in future phases (@CART-002, @CART-004, @CART-005) remain as skeletons with `// TODO` markers.
+
+These step definitions will fail if run now because the production code (Cart model, API routes) does not exist yet. That is expected -- step definitions are written first to define the acceptance criteria before the code that satisfies them.
+
+== Step 5: Implement Current Phase
 
 === TASK-001: Create Cart and CartItem entities and migrations [sequential]
 
@@ -68,7 +162,7 @@ CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
 
 Mark TASK-001 as `completed` in the todo list. Tick `[x]` in `docs/features/shopping-cart/tasks.adoc`.
 
-== Step 5: Verify Phase
+== Step 6: Verify Phase
 
 Detect verification commands from `package.json`:
 
@@ -78,9 +172,29 @@ npm run lint      # ESLint -- passes
 npm run typecheck # tsc --noEmit -- passes
 ....
 
-All verification passes. Proceed to commit.
+Run Gherkin feature scenarios:
 
-== Step 6: Commit Phase
+....
+npx cucumber-js --tags "@CART-001 or @CART-003"
+
+@CART-001 Scenario: Add product to cart -- FAIL
+  (API route POST /api/cart/items does not exist yet -- expected, this is Phase 2)
+
+@CART-003 Scenario: View cart contents -- FAIL
+  (API route GET /api/cart does not exist yet -- expected, this is Phase 2)
+....
+
+The @CART-001 and @CART-003 scenarios fail because the API routes (Phase 2: Backend) and frontend (Phase 3: Frontend) don't exist yet. The step definitions are correctly implemented -- they target the planned interfaces from the design. These scenarios will pass once the Backend phase implements the CartService and API routes.
+
+Run the full test suite for regressions:
+
+....
+npm test          # Existing tests -- passes (no regressions)
+....
+
+Build, lint, typecheck, and regression tests all pass. Cucumber failures are expected for this phase. Proceed to commit.
+
+== Step 7: Commit Phase
 
 Stage and commit:
 
@@ -88,17 +202,20 @@ Stage and commit:
 git add .
 git commit -m "feat(shopping-cart): implement phase 1 -- Foundation
 
-- TASK-001: Create Cart and CartItem entities and migrations"
+- TASK-001: Create Cart and CartItem entities and migrations
+- Step definitions implemented for @CART-001, @CART-003 scenarios"
 ....
 
 Commit succeeds.
 
-== Step 7: Ask to Continue
+== Step 8: Ask to Continue
 
 Present question to user:
 
 ....
-Question: Phase 1 (Foundation) is complete. 1 task implemented and verified. Continue?
+Question: Phase 1 (Foundation) is complete. 1 task implemented and verified.
+  Cucumber: @CART-001, @CART-003 scenarios have step definitions but fail (API routes not yet implemented -- expected).
+  Continue?
 Options:
 - Continue to Phase 2: Backend
 - Stop here
@@ -116,7 +233,9 @@ TodoWrite:
 - TASK-005: Implement DELETE /api/cart/items/:id endpoint [pending]
 ....
 
-Loop back to Step 4 for Phase 2.
+Phase 2 targets scenarios: @CART-001, @CART-002, @CART-004, @CART-005. Step definitions for @CART-002, @CART-004, @CART-005 will be implemented next (step 4 of the Phase 2 cycle), before the production code tasks.
+
+Loop back to Step 3 for Phase 2.
 
 == Updated tasks.adoc After Phase 1
 
@@ -128,8 +247,8 @@ Create database entities and migrations for cart persistence.
 * [x] TASK-001: Create Cart and CartItem entities and migrations [sequential]
 +
 Components:: Database, Cart model, CartItem model
-Stories:: US-001, US-002
-Specs:: CART-001, CART-005
+Features:: Cart Management (cart-management.feature)
+Scenarios:: @CART-001, @CART-003
 Description:: Create Cart table and CartItem table...
 
 == Phase 2: Backend
@@ -141,13 +260,29 @@ Description:: Create Cart table and CartItem table...
 
 When the last phase is committed:
 
-1. Set the task list status to `Implemented`:
+1. Run all Gherkin feature scenarios and confirm they pass:
++
+....
+npx cucumber-js --tags "@shopping-cart"
+
+@CART-001 Scenario: Add product to cart -- PASS
+@CART-002 Scenario: Adding duplicate product increments quantity -- PASS
+@CART-003 Scenario: View cart contents -- PASS
+@CART-004 Scenario: Update item quantity -- PASS
+@CART-005 Scenario: Remove item from cart -- PASS
+
+5 scenarios (5 passed)
+....
++
+All scenarios pass. Feature is ready.
+
+2. Set the task list status to `Implemented`:
 +
 ....
 docs/features/shopping-cart/tasks.adoc  -> :status: Implemented
 ....
 
-2. Detect design divergences -- compare what was built against the design. For each divergence, analyze both resolution directions (update design vs. fix code) and report to the orchestrator:
+3. Detect design divergences -- compare what was built against the design. For each divergence, analyze both resolution directions (update design vs. fix code) and report to the orchestrator:
 +
 ....
 Design divergences for shopping-cart:
@@ -164,7 +299,7 @@ No other divergences detected.
 +
 The orchestrator presents this to the user for decision. This skill does NOT modify `design.adoc` -- design updates are routed to `needs-design` by the orchestrator.
 
-3. Commit task status update:
+4. Commit task status update:
 +
 ....
 git commit -m "chore(shopping-cart): mark implementation complete
@@ -172,4 +307,4 @@ git commit -m "chore(shopping-cart): mark implementation complete
 Set tasks status to Implemented."
 ....
 
-Report to the orchestrator that the shopping-cart feature implementation is complete, along with the divergence report.
+Report to the orchestrator that the shopping-cart feature implementation is complete, along with the test results and divergence report.
