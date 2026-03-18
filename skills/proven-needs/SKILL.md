@@ -1,6 +1,6 @@
 ---
 name: proven-needs
-description: Intent-driven state transition workflow for evolving software systems. Declare a desired state, evaluate it against reality and constraints, then execute the minimal valid transition. Use when asked to implement a feature, fix something, update dependencies, improve quality, or make any change to the system. This is the single entry point — it observes current state, classifies the intent, evaluates feasibility against constraints, derives a transition plan, and orchestrates the appropriate needs-* capabilities. Also use when asked about the development workflow, how features are organized, or the overall process.
+description: Intent-driven state transition workflow for evolving software systems. Declare a desired state, evaluate it against reality and constraints, then execute the minimal valid transition. Use when asked to implement a feature, fix something, update dependencies, improve quality, or make any change to the system. This is the single entry point -- it observes current state, classifies the intent, evaluates feasibility against constraints, derives a transition plan, and orchestrates the appropriate needs-* capabilities. Also use when asked about the development workflow, how features are organized, or the overall process.
 ---
 
 ## Purpose
@@ -10,7 +10,7 @@ Continuously evolve a software system by declaring a desired state, evaluating i
 ## State Transition Loop
 
 ```
-Observe → Declare → Evaluate → Derive → Execute → Validate → Repeat
+Observe -> Declare -> Evaluate -> Derive -> Execute -> Validate -> Repeat
 ```
 
 1. **Observe** -- capture the current state (automated)
@@ -29,9 +29,9 @@ The observable, verifiable reality of the system right now. Computed fresh each 
 
 **Artifact state:**
 - Which feature packages exist in `docs/features/`
-- For each feature: which artifacts exist (`.feature` files, design, tasks), their statuses
+- For each feature: which artifacts exist (`spec.yaml`, design, tasks), their versions, statuses
 - Project-wide artifacts: `docs/constraints.adoc`, `docs/adrs/`, `docs/architecture.adoc`, `docs/state-log.adoc`
-- Staleness: have `.feature` files changed since design was last updated? (detected via git)
+- Staleness: has `spec.yaml` changed since design was last updated? (detected via `:source-spec-version:`)
 
 **Codebase state:**
 - Language, framework, project structure
@@ -62,18 +62,12 @@ A self-contained unit of work scoped to one feature. Lives in `docs/features/<sl
 
 ```
 docs/features/<slug>/
-├── *.feature            # WHY + WHAT + VERIFY: Gherkin scenarios (user stories, specs, and executable tests in one)
-├── steps/               # Cucumber step definitions (glue code)
-├── design.adoc          # HOW: implementation blueprint
-└── tasks.adoc           # WORK: phased implementation breakdown
+  spec.yaml            # WHY + WHAT: user stories + EARS requirements (schema-validated)
+  design.adoc          # HOW: implementation blueprint
+  tasks.adoc           # WORK: phased implementation breakdown
 ```
 
-Gherkin `.feature` files serve as the unified artifact for requirements, specifications, and executable tests. Each `.feature` file contains:
-- A `Feature:` description with As a / I want / So that (the user story)
-- `Scenario:` blocks with Given/When/Then (the specification and test)
-- `@<PREFIX>-<NNN>` tags on each scenario (the spec requirement IDs)
-
-Step definitions (glue code) live within the feature package at `docs/features/<slug>/steps/`.
+The `spec.yaml` file combines user stories and EARS requirements in one artifact. Each story contains the requirements that resolve it. The file is validated by a JSON schema (`skills/needs-features/schemas/feature-spec.schema.json`) and a consistency checking script (`scripts/validate-specs.js`).
 
 Each feature package is fully independent -- it can be specified, designed, and implemented without reading other feature packages. Feature designs reference project-wide ADRs and architecture but never other feature designs.
 
@@ -103,9 +97,10 @@ These operate within a single feature package:
 
 | Capability | Skill | Domain |
 |---|---|---|
-| Features | `needs-features` | Create/update Gherkin feature files (requirements, specifications, and executable tests in one) |
+| Features | `needs-features` | Create/update user stories + EARS requirements (spec.yaml) |
 | Design | `needs-design` | Create implementation blueprint for a feature |
 | Tasks | `needs-tasks` | Break design into phased implementation units |
+| Tests | `needs-tests` | Derive executable tests from requirements (opt-in, requires ADR) |
 | Implementation | `needs-implementation` | Write and verify code for a feature |
 
 ### Project-wide capabilities
@@ -122,7 +117,9 @@ These operate at the project level:
 
 ### Supporting skills
 
-None. Gherkin's Given/When/Then syntax is the requirement language.
+| Skill | Purpose |
+|---|---|
+| `ears-requirements` | EARS methodology reference for writing requirements |
 
 ## Workflow
 
@@ -134,17 +131,15 @@ When this skill is invoked, immediately build the current state model:
 
 1. **`docs/constraints.adoc`** -- read all constraint categories and rules. If missing, note that no constraints are defined. Do not create it automatically -- the user declares constraints intentionally.
 
-2. **`docs/features/`** -- list all feature directories. For each, check which artifacts exist (`.feature` files, `design.adoc`, `tasks.adoc`). Features with an `@archived` tag on the `Feature:` block are reported in the summary but skipped during intent classification and staleness checks.
+2. **`docs/features/`** -- list all feature directories. For each, check which artifacts exist (`spec.yaml`, `design.adoc`, `tasks.adoc`). Features with `:status: Archived` in `spec.yaml` are reported in the summary but skipped during intent classification and staleness checks.
 
-3. **`docs/adrs/`** -- read the index, note how many ADRs exist and their statuses.
+3. **`docs/adrs/`** -- read the index, note how many ADRs exist and their statuses. Pay particular attention to any ADR about TDD/automated testing -- this determines whether `needs-tests` is available.
 
 4. **`docs/architecture.adoc`** -- check existence, read `:version:` if present.
 
 5. **`docs/state-log.adoc`** -- check existence, read recent transitions for context. Pay particular attention to:
    - **`:result: In Progress`** -- the prior session started a transition but ended unexpectedly (crash, context exhaustion, tool failure) without cleanly recording a result. The entry contains the intent and plan but `:capabilities-invoked:` may be empty or incomplete. Propose resuming the transition or marking it as `:result: Failed` before starting new work.
    - **`:result: Partial`** -- the user explicitly stopped a transition mid-way. The entry lists capabilities completed vs. remaining. Propose completing the remaining capabilities before starting new work.
-   
-   In both cases, the transition's `:features:` and `:capabilities-invoked:` fields provide useful context for understanding why artifacts are in their current state (e.g., `.feature` files exist but design is missing because a prior transition was interrupted).
 
 #### 1.2 Analyze codebase
 
@@ -164,10 +159,10 @@ Present a concise summary to the user:
 Current state:
   Features: 3 (user-auth [implemented], user-profile [designed], shopping-cart [specified])
   Constraints: 8 rules across 4 categories
-  ADRs: 2 accepted
+  ADRs: 2 accepted (TDD: not adopted)
   Architecture: v1.0.0 (current)
   Codebase: TypeScript/Next.js, 47 deps (1 vulnerable), 78% coverage, build passing
-  Staleness: user-profile .feature files changed since last design update
+  Staleness: user-profile spec.yaml changed since last design update
 ```
 
 ### 2. Accept Desired State
@@ -182,24 +177,11 @@ Classify the desired state into one or more intent types:
 |---|---|---|
 | **Feature evolution** | Describes user-facing capability, has a user journey | "Users can reset password via SMS" |
 | **Constraint declaration** | Universal quantifiers, system-as-subject, applies to features that don't exist yet | "All API endpoints must enforce rate limiting" |
-| **Artifact maintenance** | References existing artifacts, sync/update language | "Design is in sync with current .feature files" |
+| **Artifact maintenance** | References existing artifacts, sync/update language | "Spec is in sync with current intent" |
 | **Dependency maintenance** | References packages, versions, vulnerabilities | "No dependencies have known vulnerabilities" |
 | **Architecture evolution** | References system structure, technology changes | "Authentication uses OAuth2 instead of sessions" |
 | **Quality improvement** | References tests, coverage, code quality | "All API endpoints have integration tests" |
 | **Documentation** | References docs, architecture document | "Architecture doc reflects current system" |
-
-```mermaid
-flowchart TD
-    INPUT["User intent"] --> SIGNALS{"Analyze<br/>signals"}
-
-    SIGNALS -->|"User journey,<br/>user-facing capability"| FEAT["Feature evolution"]
-    SIGNALS -->|"Universal quantifiers,<br/>system-as-subject"| CONST["Constraint declaration"]
-    SIGNALS -->|"References artifacts,<br/>sync/update language"| ART["Artifact maintenance"]
-    SIGNALS -->|"References packages,<br/>vulnerabilities"| DEP["Dependency maintenance"]
-    SIGNALS -->|"System structure,<br/>technology changes"| ARCH["Architecture evolution"]
-    SIGNALS -->|"Tests, coverage,<br/>code quality"| QUAL["Quality improvement"]
-    SIGNALS -->|"References docs,<br/>architecture document"| DOC["Documentation"]
-```
 
 #### 2.2 Constraint detection
 
@@ -209,23 +191,6 @@ Before proceeding with feature decomposition, check whether the intent is actual
 2. **System-as-subject** -- it describes a property of the system, not a capability for a user
 3. **No user journey** -- there is no identifiable user role, action, or benefit
 4. **Future-proof** -- it would apply to features that don't exist yet
-
-```mermaid
-flowchart TD
-    INTENT["Intent statement"] --> Q1{"Universal scope?<br/>(all, every, never)"}
-
-    Q1 -->|Yes| Q2{"System-as-subject?<br/>(property of system,<br/>not user capability)"}
-    Q1 -->|No| FEATURE["Feature requirement"]
-
-    Q2 -->|Yes| Q3{"No user journey?<br/>(no role, action,<br/>or benefit)"}
-    Q2 -->|No| FEATURE
-
-    Q3 -->|Yes| Q4{"Future-proof?<br/>(applies to features<br/>that don't exist yet)"}
-    Q3 -->|No| ASK["Ask user:<br/>constraint or<br/>feature requirement?"]
-
-    Q4 -->|Yes| CONSTRAINT["Constraint<br/>→ add to docs/constraints.adoc"]
-    Q4 -->|No| ASK
-```
 
 If the intent is a constraint:
 - Propose adding it to `docs/constraints.adoc` with the appropriate category
@@ -242,7 +207,25 @@ Your intent could be interpreted as:
 Which did you mean?
 ```
 
-#### 2.3 Feature decomposition (for feature evolution intents)
+#### 2.3 TDD decision check
+
+When the orchestrator encounters a feature evolution intent for the first time (or when the user explicitly asks about testing), check whether a TDD/automated testing ADR exists:
+
+- **If no TDD ADR exists:** Ask the user:
+  ```
+  This project doesn't have an automated testing strategy yet.
+  Would you like to adopt TDD for this project?
+
+    1. Yes -- tests will be derived from requirements before implementation (creates ADR)
+    2. No -- manual verification against spec.yaml requirements only
+  ```
+  If the user chooses yes, invoke `needs-adr` to create the TDD ADR. This enables `needs-tests` in the pipeline.
+
+- **If a TDD ADR exists and is accepted:** Include `needs-tests` in transition plans.
+
+- **If a TDD ADR exists but is superseded/deprecated:** Do not include `needs-tests`.
+
+#### 2.4 Feature decomposition (for feature evolution intents)
 
 ```mermaid
 flowchart TD
@@ -252,11 +235,11 @@ flowchart TD
     CHECK -->|Yes: Evolution| EV_P1
 
     subgraph greenfield ["Greenfield Path"]
-        GF_P1["Pass 1: Draft scenarios<br/>into _drafts/ temp slug"]
+        GF_P1["Pass 1: Draft stories+reqs<br/>into _drafts/ temp slug"]
         GF_COHESION["Analyze cohesion<br/>(shared data, journey,<br/>independent value)"]
         GF_PROPOSE["Propose feature<br/>groupings to user"]
         GF_CONFIRM{User<br/>confirms?}
-        GF_P2["Pass 2: Distribute scenarios<br/>into feature packages"]
+        GF_P2["Pass 2: Distribute stories<br/>into feature packages"]
         GF_CLEANUP["Remove _drafts/"]
 
         GF_P1 --> GF_COHESION
@@ -268,7 +251,7 @@ flowchart TD
     end
 
     subgraph evolution ["Evolution Path"]
-        EV_P1["Pass 1: Draft scenarios<br/>into _drafts/ temp slug"]
+        EV_P1["Pass 1: Draft stories+reqs<br/>into _drafts/ temp slug"]
         EV_CLASSIFY["Classify against<br/>existing features<br/>(extends / new / updates)"]
         EV_PROPOSE["Present mapping<br/>to user"]
         EV_CONFIRM{User<br/>confirms?}
@@ -289,90 +272,60 @@ flowchart TD
 
 **When no features exist yet (greenfield):**
 
-This uses a two-pass approach because `needs-features` operates within a feature package (requires a slug), but feature groupings aren't known until scenarios are drafted.
+This uses a two-pass approach because `needs-features` operates within a feature package (requires a slug), but feature groupings aren't known until stories are drafted.
 
-**Pass 1 -- Draft scenarios with a temporary slug:**
+**Pass 1 -- Draft stories with a temporary slug:**
 
-1. Invoke `needs-features` with a temporary working slug (e.g., `_drafts`) to derive Gherkin scenarios from the intent. This produces an initial set of `.feature` files without committing to a feature structure.
-2. Analyze scenario cohesion to propose feature groupings:
-   - Scenarios that share the same data entities → same feature
-   - Scenarios in the same user journey → same feature
-   - Scenarios that can deliver independent value → separate features
+1. Invoke `needs-features` with a temporary working slug (e.g., `_drafts`) to derive user stories and requirements from the intent. This produces an initial spec.yaml without committing to a feature structure.
+2. Analyze story cohesion to propose feature groupings:
+   - Stories that share the same data entities -> same feature
+   - Stories in the same user journey -> same feature
+   - Stories that can deliver independent value -> separate features
 3. Present the proposed grouping to the user:
    ```
-   Based on your intent, I propose 2 features:
+   Based on your intent, I propose 3 features:
 
-   Feature 1: user-authentication
-     - Login scenarios (@AUTH-001, @AUTH-002)
-     - Registration scenarios (@AUTH-003, @AUTH-004)
-     - Password Reset scenarios (@AUTH-005, @AUTH-006)
-     (Share auth flow and user credentials)
+   Feature 1: product-browsing (prefix: PROD)
+     - US-001: View Product Catalog (PROD-001 through PROD-004)
+     - US-002: Search Products (PROD-005 through PROD-008)
+     (Share product data and catalog UI)
 
-   Feature 2: user-profile
-     - View Profile scenarios (@PROF-001)
-     - Edit Profile scenarios (@PROF-002, @PROF-003)
-     (Independent of auth, operate on profile data)
+   Feature 2: shopping-cart (prefix: CART)
+     - US-001: Add to Cart (CART-001 through CART-003)
+     - US-002: View Cart (CART-004 through CART-007)
+     (Share cart state and cart data)
+
+   Feature 3: checkout (prefix: CHK)
+     - US-001: Checkout Process (CHK-001 through CHK-005)
+     (Independent user journey with payment flow)
 
    Adjust grouping?
    ```
 4. Wait for user confirmation before creating feature packages.
 
-**Pass 2 -- Distribute scenarios into feature packages:**
+**Pass 2 -- Distribute stories into feature packages:**
 
-5. For each confirmed feature, invoke `needs-features` with the final slug to create the feature's `.feature` files, distributing the drafted scenarios into their assigned feature packages. Spec ID tags are reassigned to be sequential within each feature.
+5. For each confirmed feature, invoke `needs-features` with the final slug to create the feature's `spec.yaml`, distributing the drafted stories into their assigned feature packages. IDs are reassigned to be sequential within each feature.
 6. Remove the temporary `_drafts` directory if it was created on disk.
 
 **When features already exist (evolution):**
 
-This also uses a two-pass approach. Scenarios are drafted first, then classified against existing features.
-
-**Pass 1 -- Draft scenarios and classify:**
-
-1. Observe existing features and their scenarios.
-2. Invoke `needs-features` with a temporary working slug (e.g., `_drafts`) to derive scenarios from the new intent.
-3. Classify each drafted scenario against existing features:
-   - **Extends existing:** Scenario shares data/state/journey with an existing feature → propose adding to that feature
-   - **New feature:** Scenario doesn't fit any existing feature → propose new feature package
-   - **Updates existing:** Scenario modifies behavior already covered by an existing feature → propose updating that feature
-4. Classification heuristics:
-   - Match scenario keywords against existing feature `.feature` files
-   - Check if the scenario's data entities overlap with an existing feature
-   - Check if the scenario belongs to the same user journey as an existing feature
-5. Present the mapping to the user for confirmation:
-   ```
-   This intent maps to:
-
-   Extend: user-authentication/ (existing)
-     - Add scenarios: SMS Password Reset (@AUTH-007, @AUTH-008)
-     - Design will need updating for SMS flow
-
-   Create: notification-preferences/ (new)
-     - Manage Notification Channels scenarios
-     - Set Notification Preferences scenarios
-
-   Confirm or adjust?
-   ```
-
-**Pass 2 -- Distribute scenarios:**
-
-6. For scenarios assigned to existing features, invoke `needs-features` (add mode) for each feature with the relevant scenarios.
-7. For scenarios assigned to new features, invoke `needs-features` (create mode) for each new feature.
-8. Remove the temporary `_drafts` directory if it was created on disk.
+Same two-pass approach. Stories are drafted first, then classified against existing features.
 
 **Constraint surfacing during decomposition:**
 
-While deriving scenarios, if a requirement is identified as cross-cutting:
+While deriving stories and requirements, if a requirement is identified as cross-cutting:
 1. Flag it as a potential constraint
 2. Present to the user:
    ```
-   While writing scenarios for user-authentication, I found a cross-cutting requirement:
+   While deriving requirements for user-authentication, I found a cross-cutting requirement:
      "Passwords must be at least 8 characters with mixed case and numbers"
 
    This applies to registration, password reset, and any future password feature.
 
    Options:
      1. Add to docs/constraints.adoc (recommended -- enforced everywhere)
-     2. Keep as feature scenario (only enforced in this feature)
+     2. Keep as feature requirement (only enforced in this feature)
    ```
 
 ### 3. Evaluate Feasibility
@@ -382,9 +335,10 @@ For each feature in the transition plan, check:
 #### 3.1 Precondition check
 
 Does the desired state require artifacts that don't exist yet? For each involved capability:
-- `needs-design` requires `.feature` files → do they exist?
-- `needs-tasks` works best with design → is design available?
-- `needs-implementation` requires `.feature` files (for acceptance scenarios) and at minimum a design → do they exist?
+- `needs-design` requires spec.yaml -> does it exist?
+- `needs-tasks` works best with design -> is design available?
+- `needs-implementation` requires at minimum a design -> does one exist?
+- `needs-tests` requires spec.yaml -> does it exist? Is TDD adopted (ADR)?
 
 If preconditions are unmet, the orchestrator can satisfy them as part of the transition (by invoking earlier capabilities first). This is not a pipeline -- the orchestrator dynamically determines what's needed.
 
@@ -409,8 +363,9 @@ Options:
 
 #### 3.3 Staleness check
 
-Check if any existing artifacts involved in the transition are stale (using git history):
-- `.feature` files changed but design not refreshed?
+Check if any existing artifacts involved in the transition are stale:
+- spec.yaml updated but design not refreshed? (`:source-spec-version:` mismatch)
+- Design updated but tasks not refreshed? (`:source-design-version:` mismatch)
 - Feature implemented but architecture not updated?
 
 Report staleness and recommend resolution before proceeding.
@@ -422,18 +377,19 @@ Build a dependency graph of capability invocations. The graph is derived, not ha
 **For each feature in scope:**
 
 1. Determine which artifacts need creating or updating
-2. Order capabilities by dependency: features → design → tasks → implementation. `needs-features` is always invoked -- every feature gets Gherkin scenarios. Feature files are the contract between intent (WHY) and design (HOW), and they serve as the executable acceptance gate for implementation.
-3. Skip capabilities whose artifacts are already current and satisfy the desired state (e.g., `.feature` files already exist and cover the intent)
-4. Mark which steps can run in parallel across features (independent features can be processed concurrently)
+2. Order capabilities by dependency: features -> design -> tasks -> implementation. `needs-features` is always invoked -- every feature gets a spec.yaml. The spec is the contract between intent (WHY/WHAT) and design (HOW).
+3. If TDD is adopted (ADR exists), include `needs-tests` after `needs-features` (before or alongside `needs-implementation`)
+4. Skip capabilities whose artifacts are already current and satisfy the desired state
+5. Mark which steps can run in parallel across features (independent features can be processed concurrently)
 
 **Architecture updates:**
 
 After all feature implementations in the current transition are complete, invoke `needs-architecture` if:
-- Any feature implementation changed the system's component structure (new services, new data stores, new external interfaces)
+- Any feature implementation changed the system's component structure
 - The architecture document doesn't exist yet
 - The architecture document is stale relative to the implemented features
 
-Do not invoke `needs-architecture` mid-transition between features -- wait until all features are implemented so the architecture document reflects the complete system state.
+Do not invoke `needs-architecture` mid-transition between features.
 
 **Present the plan to the user:**
 
@@ -441,16 +397,17 @@ Do not invoke `needs-architecture` mid-transition between features -- wait until
 Transition plan to achieve "Users can reset password via SMS":
 
   Feature: user-authentication/ (extend existing)
-  1. needs-features: Add SMS password reset scenarios to .feature files
+  1. needs-features: Add SMS password reset stories + requirements to spec.yaml
   2. needs-design: Update design for SMS flow
   3. needs-tasks: Create implementation tasks
-  4. needs-implementation: Implement code + step definitions (scenarios must pass)
+  4. needs-implementation: Implement code changes
 
   Skipping: needs-adr (no new technology decisions)
+  Skipping: needs-tests (TDD not adopted)
   Post-implementation: needs-architecture (update after implementation)
 
   Risk: HIGH (new feature behavior, code changes)
-  Estimated artifacts affected: .feature files + step definitions + code
+  Estimated artifacts affected: spec.yaml, design.adoc, tasks.adoc, code
 
   Proceed?
 ```
@@ -470,12 +427,12 @@ Store the user's choice for the duration of this transition. Default to **Intera
 
 ### 5. Execute Transition
 
-**Before invoking the first capability**, append an `In Progress` entry to `docs/state-log.adoc` with the fields known so far: `:date:`, `:intent:`, `:type:`, `:risk:`, `:features:`, `:desired-state:`, `:prior-state:`, and `:result: In Progress`. Leave `:capabilities-invoked:`, `:constraints-checked:`, and `:artifacts-modified:` empty -- these are filled in when the transition completes or is stopped. This ensures that if the session ends unexpectedly, a recoverable trace exists.
+**Before invoking the first capability**, append an `In Progress` entry to `docs/state-log.adoc` with the fields known so far: `:date:`, `:intent:`, `:type:`, `:risk:`, `:features:`, `:desired-state:`, `:prior-state:`, and `:result: In Progress`. Leave `:capabilities-invoked:`, `:constraints-checked:`, and `:artifacts-modified:` empty -- these are filled in when the transition completes or is stopped.
 
 Invoke capabilities in the derived order by loading each capability skill. For each capability:
 
 1. The orchestrator passes the feature context (slug, desired state, current state for that feature)
-2. The capability runs its observe → evaluate → execute cycle
+2. The capability runs its observe -> evaluate -> execute cycle
 3. The orchestrator validates the capability's output before proceeding to the next
 
 **Between capabilities:**
@@ -488,14 +445,13 @@ Invoke capabilities in the derived order by loading each capability skill. For e
 Maintain an explicit checklist of all capabilities to invoke for this transition. Use the todo-list tool if available. After each capability completes, mark it done.
 
 **Execution mode behavior:**
-- **Interactive mode:** After each capability completes, present the updated checklist and ask the user whether to continue to the next capability. Show which capabilities are done, which is next, and which remain.
-- **Autonomous mode:** After each capability completes, immediately proceed to the next capability without asking. Report progress inline (e.g., "needs-features complete, proceeding to needs-design...").
+- **Interactive mode:** After each capability completes, present the updated checklist and ask the user whether to continue to the next capability.
+- **Autonomous mode:** After each capability completes, immediately proceed to the next capability without asking. Report progress inline.
 
 In both modes, the following rules apply:
 - **Do NOT skip capabilities in the plan.** Every capability in the derived transition plan must be invoked unless the user explicitly asks to stop.
-- **Do NOT treat `needs-implementation` as the final step.** Post-implementation capabilities (`needs-architecture`, design divergence resolution) are part of the plan and must execute. Note: Gherkin scenarios are written *before* implementation -- they are the acceptance gate, not a post-implementation step.
+- **Do NOT treat `needs-implementation` as the final step.** Post-implementation capabilities (`needs-architecture`, design divergence resolution) are part of the plan and must execute.
 - If the user asks to stop mid-transition, update the existing `In Progress` entry in `docs/state-log.adoc`: set `:result: Partial`, fill in `:capabilities-invoked:` with capabilities completed so far, and add `:capabilities-remaining:` listing what was not yet invoked.
-- When a new session starts, the Observe phase (step 1) reads the state-log for `:result: Partial` or `:result: In Progress` entries. Either indicates incomplete work -- propose completing it before starting new work.
 
 **Design divergence resolution (after `needs-implementation` completes):**
 
@@ -523,23 +479,15 @@ sequenceDiagram
     Orch->>Orch: Continue to validation
 ```
 
-When `needs-implementation` finishes, it reports any divergences between the design and what was actually built. For each divergence, it provides:
-- What the design specified vs. what was implemented
-- Analysis of both resolution directions: (a) update the design to match implementation, (b) fix the code to match the design
-- Rationale for why the implementation diverged (practical constraints, better approach discovered, etc.)
-
-Present this analysis to the user with enough context to make a good decision. For each divergence:
-- If the user chooses "update design" → invoke `needs-design` (reconciliation mode) with the divergence details
-- If the user chooses "fix code" → re-invoke `needs-implementation` with the specific fix
-- The user may choose different resolutions for different divergences
+When `needs-implementation` finishes, it reports any divergences between the design and what was actually built. Present this analysis to the user with enough context to make a good decision.
 
 **Divergence report verification:**
-After `needs-implementation` completes, verify that it produced a divergence report. If no report was provided (neither divergences nor an explicit "no divergences" confirmation), request the report before proceeding to post-implementation steps.
+After `needs-implementation` completes, verify that it produced a divergence report. If no report was provided, request the report before proceeding.
 
 **Error handling:**
-- If a capability fails validation → stop, report to user, ask how to proceed
-- If a constraint is violated during execution → stop, report, offer to revise or abort
-- If the user wants to stop mid-transition → save progress, update the `In Progress` entry to `:result: Partial` in state log
+- If a capability fails validation -> stop, report to user, ask how to proceed
+- If a constraint is violated during execution -> stop, report, offer to revise or abort
+- If the user wants to stop mid-transition -> save progress, update the `In Progress` entry to `:result: Partial` in state log
 
 ### 6. Validate
 
@@ -549,6 +497,7 @@ After all capabilities in the transition have executed:
 2. Compare against the original desired state
 3. Verify all constraints still hold
 4. Run verification commands (build, test, lint) if code was changed
+5. Run `node scripts/validate-specs.js` on any modified spec.yaml files
 
 **If desired state achieved:**
 - Update the existing `In Progress` entry in `docs/state-log.adoc`: set `:result: Achieved`, fill in `:capabilities-invoked:`, `:constraints-checked:`, and `:artifacts-modified:`
@@ -557,62 +506,21 @@ After all capabilities in the transition have executed:
 **If desired state NOT achieved:**
 - Identify what's missing
 - Propose additional steps or report what went wrong
-- Do not update the entry to `:result: Achieved` -- leave as `In Progress` until resolved, or set to `:result: Failed` if unrecoverable
+- Do not update the entry to `:result: Achieved`
 
 ### 7. Record Transition
 
-Update the existing `In Progress` entry in `docs/state-log.adoc` with the final result. The entry was created at the start of Step 5 -- now fill in `:capabilities-invoked:`, `:constraints-checked:`, `:artifacts-modified:`, and set `:result:` to `Achieved`, `Partial`, or `Failed`. See the State Log section for format.
+Update the existing `In Progress` entry in `docs/state-log.adoc` with the final result.
 
 ## Risk Classification and Auto-Approve
-
-```mermaid
-flowchart TD
-    CHANGE["Proposed transition"] --> FACTORS["Assess risk factors"]
-
-    FACTORS --> SCOPE{"Scope:<br/>artifacts/files<br/>affected?"}
-    FACTORS --> PROX{"Constraint<br/>proximity?"}
-    FACTORS --> REV{"Reversibility?"}
-    FACTORS --> CODE{"Code<br/>impact?"}
-
-    SCOPE --> CLASSIFY{"Risk<br/>classification"}
-    PROX --> CLASSIFY
-    REV --> CLASSIFY
-    CODE --> CLASSIFY
-
-    CLASSIFY -->|"Patch deps, doc fixes,<br/>metadata, sync unchanged"| LOW["Low risk"]
-    CLASSIFY -->|"Minor deps, design adjust,<br/>sync design with updated scenarios"| MED["Medium risk"]
-    CLASSIFY -->|"New features, breaking changes,<br/>arch changes, major bumps, code"| HIGH["High risk"]
-
-    LOW --> AUTO["Auto-approve:<br/>execute immediately"]
-    MED --> PROPOSE["Propose with summary,<br/>ask user"]
-    HIGH --> REQUIRE["Full plan,<br/>require approval"]
-```
 
 Transitions are classified by risk level:
 
 | Risk Level | Auto-approve? | Criteria |
 |---|---|---|
-| **Low** | Yes, execute immediately | Patch dependency updates; sync design with unchanged scenario semantics; format/metadata fixes; documentation updates |
-| **Medium** | Propose with summary, ask | Minor dependency updates; design adjustments for modified scenarios; syncing design with updated .feature files |
+| **Low** | Yes, execute immediately | Patch dependency updates; sync design with unchanged requirement semantics; format/metadata fixes; documentation updates |
+| **Medium** | Propose with summary, ask | Minor dependency updates; design adjustments for modified requirements; syncing design with updated spec |
 | **High** | Full plan, require approval | New features; breaking changes; architecture changes; major version bumps; constraint modifications; code changes |
-
-**Risk factors:**
-- Scope: How many artifacts/files are affected?
-- Constraint proximity: Does the change approach any constraint boundary?
-- Reversibility: Can the change be undone?
-- Code impact: Does it modify production code?
-
-**System-proposed intents:**
-
-The orchestrator can detect conditions and propose desired states:
-- "Dependency X has a critical CVE -- desired state: X is patched" (auto-approve if patch-level)
-- "Feature user-auth design is stale relative to .feature files" (propose sync, medium risk)
-- "3 features share the same password validation requirement" (propose as constraint, high risk)
-
-For auto-approved transitions, inform the user after execution:
-```
-Auto-approved: Updated lodash 4.17.20 → 4.17.21 (CVE-XXXX patched). Tests passing.
-```
 
 ## Constraints Specification
 
@@ -636,11 +544,6 @@ Auto-approved: Updated lodash 4.17.20 → 4.17.21 (CVE-XXXX patched). Tests pass
 
 * Only MIT, Apache-2.0, and BSD-licensed dependencies are permitted.
 
-== API Compatibility
-
-* Public endpoints maintain backward compatibility within a MAJOR version.
-* Removal of any public endpoint requires a MAJOR version bump.
-
 == Architecture
 
 * Business logic resides in the service layer, not in route handlers.
@@ -658,18 +561,17 @@ Auto-approved: Updated lodash 4.17.20 → 4.17.21 (CVE-XXXX patched). Tests pass
 
 ### Constraint lifecycle
 
-- **Adding:** User declares intent that is classified as constraint, or constraint is surfaced during scenario authoring. Always requires user confirmation. MINOR version bump.
+- **Adding:** User declares intent that is classified as constraint, or constraint is surfaced during requirement derivation. Always requires user confirmation. MINOR version bump.
 - **Modifying:** User explicitly requests relaxing or tightening a rule. Requires user confirmation. MINOR or MAJOR bump depending on impact.
 - **Removing:** User explicitly requests removal. Requires confirmation with warning about enforcement loss. MAJOR version bump.
-
-Constraints are intentionally stable. Frequent constraint changes indicate they may be too specific (should be feature scenarios) or too vague (need refinement).
 
 ### Constraint enforcement
 
 Every capability checks relevant constraints during its Evaluate phase:
-- `needs-features`: checks quality constraints (testability, completeness) and that scenarios do not duplicate project-wide constraints
+- `needs-features`: checks quality constraints (testability, completeness) and that requirements do not duplicate project-wide constraints
 - `needs-design`: checks architecture constraints
 - `needs-tasks`: checks quality constraints (testing tasks exist if coverage constraints apply)
+- `needs-tests`: checks quality constraints (coverage thresholds, test requirements)
 - `needs-implementation`: checks quality, performance, architecture constraints
 - `needs-dependencies`: checks licensing, security constraints
 - `needs-security`: checks security constraints
@@ -698,22 +600,9 @@ A constraint violation blocks a transition unless the user explicitly chooses to
 :capabilities-invoked: needs-features, needs-design, needs-tasks, needs-implementation
 :constraints-checked: Security (pass), Architecture (pass), Quality (pass)
 :result: Achieved
-:artifacts-modified: docs/features/user-authentication/password-reset.feature, docs/features/user-authentication/design.adoc (v2.0.0), docs/features/user-authentication/tasks.adoc (v1.0.0), docs/features/user-authentication/steps/password-reset.steps.js
+:artifacts-modified: docs/features/user-authentication/spec.yaml (v1.1.0), docs/features/user-authentication/design.adoc (v2.0.0), docs/features/user-authentication/tasks.adoc (v1.0.0), source code
 
 == TRANSITION-002
-:date: 2026-02-22
-:intent: No dependencies have known vulnerabilities
-:type: Dependency maintenance
-:risk: Low (auto-approved)
-:features: n/a (project-wide)
-:desired-state: Zero known vulnerabilities in dependency graph
-:prior-state: lodash@4.17.20 has HIGH CVE
-:capabilities-invoked: needs-dependencies
-:constraints-checked: Security (triggered), Licensing (pass)
-:result: Achieved
-:artifacts-modified: package.json, package-lock.json
-
-== TRANSITION-001
 ...
 ```
 
@@ -721,12 +610,8 @@ A constraint violation blocks a transition unless the user explicitly chooses to
 
 - Transitions are numbered sequentially (TRANSITION-001, TRANSITION-002, ...)
 - Newest transitions appear first (reverse chronological)
-- Entries are created at the start of execution with `:result: In Progress`, then updated exactly once with the final result when the transition completes or is stopped
-- `:result:` values:
-  - `In Progress` -- transition is actively executing, or the prior session ended unexpectedly before recording a final result. On session start, the Observe phase detects these and proposes resuming or marking as Failed.
-  - `Achieved` -- desired state was reached and validated
-  - `Partial` -- user explicitly stopped the transition mid-way. `:capabilities-invoked:` lists what completed; `:capabilities-remaining:` lists what was not yet invoked.
-  - `Failed` -- transition failed with a reason
+- Entries are created at the start of execution with `:result: In Progress`, then updated exactly once with the final result
+- `:result:` values: `In Progress`, `Achieved`, `Partial`, `Failed`
 
 ## Feature Package Conventions
 
@@ -736,9 +621,8 @@ Feature directory names use kebab-case derived from the feature's primary purpos
 - `user-authentication`
 - `password-reset-sms`
 - `shopping-cart`
-- `notification-preferences`
 
-Slugs are stable -- do not rename feature directories after creation. If a feature's scope changes significantly, create a new feature and archive the old one.
+Slugs are stable -- do not rename feature directories after creation.
 
 ### Feature status
 
@@ -746,10 +630,10 @@ A feature's status is derived from which artifacts exist and their states:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Specified : .feature files created
+    [*] --> Specified : spec.yaml created
     Specified --> Designed : design.adoc created (Current)
     Designed --> Planned : tasks.adoc created (Current)
-    Planned --> Implemented : all Gherkin scenarios pass
+    Planned --> Implemented : implementation complete
 
     Specified --> Archived : archived
     Designed --> Archived : archived
@@ -760,92 +644,33 @@ stateDiagram-v2
 
 | Artifacts Present | Derived Status |
 |---|---|
-| `.feature` files only | `Specified` |
+| spec.yaml only | `Specified` |
 | + design.adoc (status: Current) | `Designed` |
 | + tasks.adoc (status: Current) | `Planned` |
-| All Gherkin scenarios pass, implementation complete | `Implemented` |
-| `@archived` tag on Feature blocks | `Archived` |
+| Implementation complete, all requirements verified | `Implemented` |
+| `:status: Archived` in spec.yaml | `Archived` |
 
-**Task cleanup:** Once a feature reaches `Implemented` (all Gherkin scenarios pass), `tasks.adoc` is no longer needed as the completion oracle -- passing scenarios serve that role. The task file may be removed or left in place at the team's discretion. If removed, the feature remains `Implemented` as long as scenarios continue to pass.
+### Artifact versioning within features
 
-### Feature archival
-
-A feature is archived when its scope has fundamentally changed (superseded by a new feature), or when it is no longer relevant to the system. Archival is intentional and explicit:
-
-1. Add `@archived` tag to all `Feature:` blocks in the feature's `.feature` files
-2. Record the archival in the state log
-
-**Archived features:**
-- Are skipped during intent classification (the Observe phase reports them but does not match new intents to them)
-- Are not included in staleness checks
-- Remain on disk as historical records (never deleted)
-- Can be un-archived by removing the `@archived` tag if the feature becomes relevant again
-
-### Artifact versioning
-
-Feature files (`.feature`) do not carry explicit version numbers. Staleness and change detection use git history:
-- `git log` on `.feature` files shows when scenarios last changed
-- `git diff` between `.feature` files and `design.adoc` last-modified dates detects staleness
-- Design and tasks still use AsciiDoc with `:version:` and `:last-updated:` attributes
-
-Design tracks its upstream via git:
-- When `needs-design` runs, it checks whether `.feature` files have changed since `design.adoc` was last modified
-- If yes, the design is stale and needs updating
+`spec.yaml` uses SemVer independently. Downstream artifacts track their upstream:
+- `design.adoc` tracks `:source-spec-version:`
+- `tasks.adoc` tracks `:source-design-version:` and `:source-spec-version:`
 
 ### Format and dates
 
-Feature specifications use Gherkin (`.feature` files). Design and task artifacts use AsciiDoc (`.adoc`). Dates use `YYYY-MM-DD` format. Diagrams use Mermaid. AsciiDoc artifacts use `[source,mermaid]` blocks; these render as syntax-highlighted code on GitHub and as diagrams in Asciidoctor-compatible viewers with the `asciidoctor-diagram` extension.
-
-### Diagram conventions
-
-All generated documentation artifacts use Mermaid for diagrams and visual flows. When a capability produces documentation that includes architecture, component interactions, data flows, or process sequences, it embeds Mermaid diagram blocks in the AsciiDoc output.
-
-**Architecture documentation** uses the C4 model via Mermaid's C4 diagram types. The orchestrator decides which levels to include based on project complexity:
-
-| C4 Level | Diagram Type | When to Include |
-|---|---|---|
-| **Level 1: System Context** | `C4Context` | Always. Shows the system, its users, and external systems. |
-| **Level 2: Container** | `C4Container` | Always. Shows major runtime containers (apps, databases, queues). |
-| **Level 3: Component** | `C4Component` | When a container has significant internal structure (e.g., service layer with multiple modules). |
-| **Level 4: Deployment** | `C4Deployment` | When the project has non-trivial deployment topology (e.g., multi-region, Kubernetes, CDN). |
-
-Guidelines for adaptive inclusion:
-- **Libraries, CLIs, simple projects:** L1 + L2 only.
-- **Web applications with separate frontend/backend:** L1 + L2 + L3 for the backend container.
-- **Microservices or distributed systems:** L1 + L2 + L3 + L4.
-
-**Feature design documentation** uses Mermaid for:
-- **Component interaction diagrams** (`flowchart`) -- how components relate and communicate
-- **Sequence diagrams** (`sequenceDiagram`) -- key user flows and system interactions
-- **State diagrams** (`stateDiagram-v2`) -- entities with meaningful state transitions
-- **Data flow diagrams** (`flowchart`) -- how data moves through the system
-
-Feature designs include at minimum one component interaction or sequence diagram for the primary flow. Additional diagrams are added when they clarify complex interactions that prose alone cannot convey efficiently.
+Feature specifications use YAML (`.yaml`). Design and task artifacts use AsciiDoc (`.adoc`). Dates use `YYYY-MM-DD` format. Diagrams use Mermaid.
 
 ### Requirement syntax
 
-All behavioral specifications use Gherkin's Given/When/Then syntax. Each scenario is simultaneously a requirement, an acceptance criterion, and an executable test.
+All behavioral specifications use EARS (Easy Approach to Requirements Syntax). The `ears-requirements` skill provides the methodology reference.
 
 ### Black-box constraint
 
-Feature scenarios (`.feature` files) describe only externally observable behavior. Given/When/Then steps must not reference internal architecture, database schemas, API paths, or implementation details. Internal details belong in step definitions (glue code), the feature design document, project-wide architecture, and ADRs.
+Feature requirements (`spec.yaml`) describe only externally observable behavior. Internal architecture details belong in the feature design document, project-wide architecture, and ADRs.
 
 ## Bootstrap
 
 When this skill is loaded, **immediately** check the project's `AGENTS.md` for the proven-needs workflow marker.
-
-```mermaid
-flowchart TD
-    START["Read AGENTS.md"] --> EXISTS{"File<br/>exists?"}
-
-    EXISTS -->|No| INSERT["Insert proven-needs<br/>block at top of new file"]
-    EXISTS -->|Yes| MARKER{"proven-needs<br/>marker found?"}
-
-    MARKER -->|Yes| DONE["Do nothing<br/>(already bootstrapped)"]
-    MARKER -->|No| INSERT
-
-    INSERT --> INFORM["Inform user<br/>AGENTS.md updated"]
-```
 
 ### Steps
 

@@ -1,6 +1,6 @@
 = Example: Intent-Driven Session
 
-This file demonstrates two complete state transitions: a feature evolution intent and a maintenance intent.
+This file demonstrates three complete state transitions: a feature evolution intent, a maintenance intent, and a constraint declaration.
 
 == Session 1: Feature Evolution
 
@@ -14,7 +14,7 @@ This file demonstrates two complete state transitions: a feature evolution inten
 Current state:
   Features: 0 (no feature packages exist)
   Constraints: docs/constraints.adoc exists with 6 rules
-  ADRs: 0
+  ADRs: 0 (TDD: not adopted)
   Architecture: none
   Codebase: empty project, package.json with Next.js scaffold
   Constraint violations: none
@@ -26,27 +26,39 @@ Intent type: **Feature evolution** (describes user-facing capabilities with user
 
 Not a constraint (no universal quantifiers, has identifiable user roles and journeys).
 
+=== TDD Decision
+
+....
+This project doesn't have an automated testing strategy yet.
+Would you like to adopt TDD for this project?
+
+  1. Yes -- tests will be derived from requirements before implementation (creates ADR)
+  2. No -- manual verification against spec.yaml requirements only
+....
+
+User chooses: **No** (manual verification for now).
+
 === Step 3: Feature Decomposition (Two-Pass)
 
-**Pass 1:** Invoke `needs-features` with temporary slug `_drafts` to derive Gherkin scenarios from the intent. Scenarios covering 5 user capabilities identified.
+**Pass 1:** Invoke `needs-features` with temporary slug `_drafts` to derive user stories and EARS requirements from the intent.
 
-Analyze scenario cohesion and propose feature grouping:
+Analyze story cohesion and propose feature grouping:
 
 ....
 Based on your intent, I propose 3 features:
 
 Feature 1: product-browsing (prefix: PROD)
-  - Product Catalog scenarios (@PROD-001 through @PROD-004)
-  - Product Search scenarios (@PROD-005 through @PROD-008)
+  - US-001: View Product Catalog (PROD-001 through PROD-004)
+  - US-002: Search Products (PROD-005 through PROD-008)
   (Share product data and catalog UI)
 
 Feature 2: shopping-cart (prefix: CART)
-  - Add to Cart scenarios (@CART-001, @CART-002)
-  - View Cart scenarios (@CART-003 through @CART-005)
+  - US-001: Add to Cart (CART-001 through CART-003)
+  - US-002: View Cart (CART-004 through CART-007)
   (Share cart state and cart data)
 
 Feature 3: checkout (prefix: CHK)
-  - Checkout Process scenarios (@CHK-001 through @CHK-005)
+  - US-001: Checkout Process (CHK-001 through CHK-005)
   (Independent user journey with payment flow)
 
 Adjust grouping?
@@ -54,16 +66,17 @@ Adjust grouping?
 
 User confirms the grouping.
 
-**Pass 2:** For each confirmed feature, invoke `needs-features` with the final slug to create `.feature` files with proper feature-scoped spec ID tags. Remove temporary `_drafts` directory.
+**Pass 2:** For each confirmed feature, invoke `needs-features` with the final slug to create `spec.yaml` with proper feature-scoped IDs. Run `node scripts/validate-specs.js` on each spec. Remove temporary `_drafts` directory.
 
 === Step 4: Evaluate Feasibility
 
 For each feature:
-- Feature files can be created (no preconditions)
-- Design can be created from `.feature` files
+- spec.yaml can be created (no preconditions)
+- Design can be created from spec.yaml
 - Tasks can be derived from design
-- Implementation can proceed from tasks (scenarios serve as acceptance gate)
+- Implementation can proceed from tasks
 - No constraint violations anticipated
+- TDD not adopted -- `needs-tests` skipped
 
 Technology decisions will emerge during design (framework, database, payment provider) -- ADRs will be created.
 
@@ -71,18 +84,19 @@ Technology decisions will emerge during design (framework, database, payment pro
 Transition plan:
 
 For each feature (product-browsing, shopping-cart, checkout):
-  1. needs-features: Create Gherkin feature files (requirements + specifications + tests in one)
+  1. needs-features: Create spec.yaml (stories + EARS requirements)
   2. needs-design: Create implementation design
   3. needs-tasks: Create phased task breakdown
-  4. needs-implementation: Implement code + step definitions (scenarios must pass)
-  5. Resolve any design divergences (user decides per-divergence)
+  4. needs-implementation: Implement code changes
 
 Additionally:
   - needs-adr: Record technology decisions (during design phases)
   - needs-architecture: Document architecture (after all features implemented)
 
+Skipping: needs-tests (TDD not adopted)
+
 Risk: HIGH (new features, 3 feature packages, full lifecycle)
-Estimated: .feature files + design + tasks + step definitions + code per feature
+Estimated: spec.yaml + design + tasks + code per feature
 
 Proceed?
 ....
@@ -93,21 +107,21 @@ User confirms.
 
 ==== Feature 1: product-browsing
 
-1. **needs-features** creates `docs/features/product-browsing/product-catalog.feature` and `product-search.feature` (prefix: PROD, 8 scenarios with @PROD-001 through @PROD-008 tags) + skeleton step definitions in `docs/features/product-browsing/steps/`
-2. **needs-design** creates `docs/features/product-browsing/design.adoc` v1.0.0
+1. **needs-features** creates `docs/features/product-browsing/spec.yaml` v1.0.0 (prefix: PROD, 2 stories, 8 requirements). Schema validation passes.
+2. **needs-design** creates `docs/features/product-browsing/design.adoc` v1.0.0 (`:source-spec-version: 1.0.0`)
    - During Phase 0, identifies technology decisions: framework choice, database choice
    - Invokes **needs-adr** to create ADR-0001 (TypeScript) and ADR-0002 (PostgreSQL)
 3. **needs-tasks** creates `docs/features/product-browsing/tasks.adoc` v1.0.0 (3 phases, 8 tasks)
-4. **needs-implementation** implements code + step definitions phase by phase (all Gherkin scenarios must pass)
-5. **Divergence check:** needs-implementation reports no divergences (implementation matched design)
+4. **needs-implementation** implements code phase by phase
+5. **Divergence check:** needs-implementation reports no divergences
 
 ==== Feature 2: shopping-cart
 
-1. **needs-features** creates `docs/features/shopping-cart/cart-management.feature` (prefix: CART, 5 scenarios with @CART-001 through @CART-005 tags) + skeleton step definitions
+1. **needs-features** creates `docs/features/shopping-cart/spec.yaml` v1.0.0 (prefix: CART, 2 stories, 7 requirements). Schema validation passes.
 2. **needs-design** creates `docs/features/shopping-cart/design.adoc` v1.0.0
    - References existing ADRs, no new decisions needed
 3. **needs-tasks** creates `docs/features/shopping-cart/tasks.adoc` v1.0.0 (3 phases, 9 tasks)
-4. **needs-implementation** implements code + step definitions phase by phase
+4. **needs-implementation** implements code phase by phase
 5. **Divergence check:** needs-implementation reports 1 divergence:
 +
 ....
@@ -125,17 +139,17 @@ Orchestrator invokes **needs-design** (reconciliation mode) to update `design.ad
 
 ==== Feature 3: checkout
 
-1. **needs-features** creates `docs/features/checkout/checkout-process.feature` (prefix: CHK, 5 scenarios with @CHK-001 through @CHK-005 tags) + skeleton step definitions
+1. **needs-features** creates `docs/features/checkout/spec.yaml` v1.0.0 (prefix: CHK, 1 story, 5 requirements). Schema validation passes.
 2. **needs-design** creates `docs/features/checkout/design.adoc` v1.0.0
    - During Phase 0, identifies payment provider decision
    - Invokes **needs-adr** to create ADR-0003 (Stripe)
 3. **needs-tasks** creates `docs/features/checkout/tasks.adoc` v1.0.0 (3 phases, 7 tasks)
-4. **needs-implementation** implements code + step definitions phase by phase
+4. **needs-implementation** implements code phase by phase
 5. **Divergence check:** needs-implementation reports no divergences
 
 ==== Post-implementation
 
-- **needs-architecture** creates `docs/architecture.adoc` v1.0.0 from all feature designs and codebase (invoked after all features are implemented)
+- **needs-architecture** creates `docs/architecture.adoc` v1.0.0 from all feature designs and codebase
 
 === Step 6: Validate
 
@@ -147,7 +161,7 @@ Current state:
   Constraints: 6 rules, 0 violations
   ADRs: 3 accepted
   Architecture: v1.0.0 (current)
-  Codebase: TypeScript/Next.js, build passing, tests passing
+  Codebase: TypeScript/Next.js, build passing
 ....
 
 Desired state "users can browse products, add them to cart, and checkout" is achieved.
@@ -166,7 +180,7 @@ Desired state "users can browse products, add them to cart, and checkout" is ach
 :capabilities-invoked: needs-features, needs-design, needs-adr, needs-tasks, needs-implementation, needs-architecture
 :constraints-checked: Security (pass), Architecture (pass), Quality (pass), Licensing (pass)
 :result: Achieved
-:artifacts-modified: .feature files (3 features), design.adoc (3), tasks.adoc (3), step definitions, 3 ADRs, 1 architecture doc, source code
+:artifacts-modified: spec.yaml (3 features), design.adoc (3), tasks.adoc (3), 3 ADRs, architecture.adoc, source code
 ....
 
 ---
@@ -247,12 +261,7 @@ Detected as constraint because:
 
 === Execute
 
-1. Add to `docs/constraints.adoc` under Security section:
-+
-....
-* All API endpoints must enforce rate limiting at 100 requests per minute per client.
-....
-
+1. Add to `docs/constraints.adoc` under Security section
 2. Bump `docs/constraints.adoc` version (MINOR)
 3. Check existing codebase: current API endpoints do NOT have rate limiting
 4. Report constraint violation to user:
@@ -261,10 +270,10 @@ Detected as constraint because:
 New constraint added. Current violation detected:
   6 API endpoints lack rate limiting.
 
-Would you like to remediate now? This would require updating all route handlers.
+Would you like to remediate now?
 ....
 
-5. If user confirms, derive a transition to add rate limiting middleware (likely touching the product-browsing, shopping-cart, and checkout features at the implementation level).
+5. If user confirms, derive a transition to add rate limiting middleware.
 
 === Record Transition
 
@@ -279,6 +288,6 @@ Would you like to remediate now? This would require updating all route handlers.
 :prior-state: No rate limiting
 :capabilities-invoked: (constraint update) + needs-implementation (if remediated)
 :constraints-checked: n/a (this IS a constraint addition)
-:result: Achieved (constraint added, remediation applied)
+:result: Achieved
 :artifacts-modified: docs/constraints.adoc, rate-limiting middleware, route handlers
 ....

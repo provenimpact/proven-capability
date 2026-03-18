@@ -1,76 +1,103 @@
 ---
 name: needs-features
-description: Create and maintain Gherkin feature files that serve as user stories, specifications, and executable tests in one artifact. Use when the proven-needs orchestrator determines that a feature needs behavioral scenarios created or updated. Operates within a single feature package at docs/features/<slug>/. Feature files explain WHY (user perspective), define WHAT (testable behavior), and serve as VERIFY (executable via Cucumber).
+description: Create and maintain feature specifications combining user stories with EARS requirements in a schema-validated YAML format. Use when the proven-needs orchestrator determines that a feature needs stories and requirements created or updated. Operates within a single feature package at docs/features/<slug>/. Stories explain WHY from the user's perspective. Requirements define WHAT must be true -- black-box testable specifications using EARS syntax that resolve each story.
 ---
 
 ## Prerequisites
 
+Load the `ears-requirements` skill before writing requirements. It provides the EARS sentence types and templates.
+
 This skill is invoked by the `proven-needs` orchestrator, which provides the feature context (slug, intent, current state).
+
+## Artifact Format
+
+The feature specification is a single YAML file at `docs/features/<slug>/spec.yaml`. It combines user stories and their resolving EARS requirements in one artifact, validated by a JSON schema.
+
+**Schema:** `skills/needs-features/schemas/feature-spec.schema.json`
+
+**Validation:** `node scripts/validate-specs.js docs/features/<slug>/spec.yaml`
+
+The YAML file has this top-level structure:
+
+```yaml
+# yaml-language-server: $schema=<path-to-schema>
+feature: <slug>
+prefix: <PREFIX>
+version: "1.0.0"
+last_updated: "YYYY-MM-DD"
+
+constraint_notes: []   # optional
+
+stories:
+  - id: US-001
+    title: <Title>
+    narrative:
+      as_a: <role>
+      i_want: <goal>
+      so_that: <benefit>
+    requirements:
+      - id: <PREFIX>-001
+        text: <EARS requirement text>
+        ears_type: <type>
+        verification: <black-box test description>
+```
+
+Each user story contains the EARS requirements that resolve it. There are no separate acceptance criteria -- the requirements ARE the specification of what the story means in testable terms.
 
 ## Observe
 
-Assess the current state of feature files for this feature.
+Assess the current state of the feature specification.
 
 ### 1. Check feature directory
 
-Look for `docs/features/<slug>/`. If the directory does not exist, note that this is a new feature -- no feature files exist yet.
+Look for `docs/features/<slug>/`. If the directory does not exist, note that this is a new feature -- no spec exists yet.
 
-### 2. Read existing feature files
+### 2. Read existing spec
 
-If `docs/features/<slug>/*.feature` files exist:
-- Count total `.feature` files
-- Extract all `Feature:` names and descriptions
-- Extract all scenario tags (e.g., `@PROD-001`, `@CART-001`)
-- Count total scenarios and scenario outlines
-- Note the feature-level tags
+If `docs/features/<slug>/spec.yaml` exists:
+- Read `version` and `last_updated`
+- Extract all story IDs and requirement IDs
+- Count total stories and requirements
 
 ### 3. Read constraints
 
-Read `docs/constraints.adoc`. Identify any constraints relevant to feature quality (e.g., quality constraints about testability, completeness).
+Read `docs/constraints.adoc`. Identify any constraints relevant to this feature's domain -- these must not be duplicated as requirements but should be noted in `constraint_notes`.
 
-### 4. Detect test infrastructure
-
-Scan the project for:
-- **Cucumber runner:** `@cucumber/cucumber`, `cucumber-js`, or equivalent in the project's language
-- **Step definitions:** existing step files in `docs/features/<slug>/steps/` or project-wide step directories
-- **Support files:** world definitions, hooks, custom parameter types
-- **Naming conventions:** how existing step files are named and organized
-
-### 5. Report observation
+### 4. Report observation
 
 Return to the orchestrator:
 ```
 Feature: <slug>
-Feature files: {exists: true/false, count: N, scenarios: N, tags: [...]}
-Step definitions: {exists: true/false, count: N}
-Test runner: <cucumber-js / other>
+Spec: {exists: true/false, version: "X.Y.Z", stories: N, requirements: N}
 ```
 
 ## Evaluate
 
 Given the desired state from the orchestrator, determine what action is needed.
 
-### 1. Does the desired state require new feature files?
+### 1. Does the desired state require spec changes?
 
-- If no feature files exist and the intent requires them → create feature files
-- If feature files exist but the intent adds new functionality → add scenarios
-- If feature files exist but the intent modifies existing behavior → modify scenarios
-- If feature files exist and fully cover the desired state → no action needed
+- If no spec exists and the intent requires one -> create spec
+- If spec exists but the intent adds new functionality -> add stories/requirements
+- If spec exists but the intent modifies existing behavior -> modify stories/requirements
+- If spec exists and fully covers the desired state -> no action needed
 
 ### 2. Check constraints
 
-Verify that proposed scenarios would not violate any constraints:
-- Scenarios must be testable (quality constraint)
-- Scenarios must not duplicate constraint-level requirements (cross-cutting requirements belong in `docs/constraints.adoc`, not feature files)
-- Each scenario must be scoped to this one feature (must not require knowledge of other features)
+Verify that proposed requirements would not violate any constraints:
+- Requirements must be testable (quality constraint)
+- Requirements must not duplicate constraint-level rules (cross-cutting requirements belong in `docs/constraints.adoc`, not in the spec)
+- Each requirement must be scoped to this one feature (must not require knowledge of other features)
 
 ### 3. Report evaluation
 
 Return to the orchestrator:
 ```
 Action: create / add / modify / none
-Scenarios to create: N
-Scenarios to modify: [list]
+Stories to create: N
+Stories to modify: [list]
+Requirements to add: N
+Requirements to modify: [list]
 Constraint issues: [list or none]
 ```
 
@@ -78,17 +105,17 @@ Constraint issues: [list or none]
 
 ### Prefix assignment
 
-Before writing feature files, determine the spec ID prefix for this feature. The prefix is a 2-5 character uppercase code derived from the feature slug:
+Before writing the spec, determine the requirement ID prefix for this feature. The prefix is a 2-5 character uppercase code derived from the feature slug:
 
-- `product-browsing` → `PROD`
-- `shopping-cart` → `CART`
-- `checkout` → `CHK`
-- `user-authentication` → `AUTH`
-- `password-reset-sms` → `PRS`
+- `product-browsing` -> `PROD`
+- `shopping-cart` -> `CART`
+- `checkout` -> `CHK`
+- `user-authentication` -> `AUTH`
+- `password-reset-sms` -> `PRS`
 
 Present the proposed prefix to the user for confirmation before proceeding.
 
-### Creating feature files for a new feature
+### Creating a new spec
 
 #### 1. Analyze the intent
 
@@ -98,251 +125,229 @@ Read the intent (desired state) provided by the orchestrator. Identify:
 - What problems they want solved
 - Any specific requirements mentioned
 
-#### 2. Decompose into features and scenarios
+#### 2. Decompose into stories
 
-Group related behavior into Gherkin `Feature:` blocks. Each `.feature` file should represent a cohesive capability area (e.g., catalog browsing, product search, cart management).
+Break functionality into atomic user stories. Each story must:
+- Be implementable in 1-3 days
+- Deliver clear user value
+- Be scoped entirely within this feature (no cross-feature dependencies)
 
-Each scenario must:
-- Describe one specific, testable behavior
-- Be independent of other scenarios (no ordering dependencies)
-- Be scoped entirely within this feature package (no cross-feature dependencies)
-- Cover a single path (happy path, edge case, or error -- not multiple)
+A story must not be phrased so broadly that it spans multiple features. If a story seems too broad, split it or flag it to the orchestrator for potential feature decomposition.
 
 Common decomposition patterns:
 
-| Capability Area | Typical Feature Files |
+| Feature Type | Typical Stories |
 |---|---|
-| Authentication | `login.feature`, `registration.feature`, `password-reset.feature` |
-| CRUD Operations | `create-<entity>.feature`, `list-<entity>.feature`, `update-<entity>.feature` |
-| User Settings | `view-settings.feature`, `update-settings.feature` |
-| E-commerce | `product-catalog.feature`, `product-search.feature`, `cart-management.feature` |
+| Authentication | Login, Logout, Registration, Password Reset, Session Management |
+| CRUD Operations | Create, Read, Update, Delete, List/Search |
+| User Settings | View Settings, Update Settings, Preferences |
+| Notifications | Subscribe, Receive, View History, Manage Preferences |
 
-#### 3. Write each feature file
+#### 3. Write requirements for each story
 
-Every `.feature` file follows this structure:
+For each story, derive EARS requirements that fully resolve it. Each requirement must:
+- Use the correct EARS sentence type (ubiquitous, event-driven, state-driven, unwanted-behavior, optional-feature, or complex)
+- Be black-box testable -- the litmus test:
+  > Could a tester who has never seen the source code verify this requirement using only the system's user interface or public APIs? If not, rewrite it.
+- Include a verification description explaining how to test it
+- Contain the word "shall"
+- Be atomic (one behavior per requirement)
+- Be implementation-free (states WHAT, not HOW)
 
-```gherkin
-@<feature-slug>
-Feature: <Descriptive Name>
-  As a <role>,
-  I want <goal>,
-  so that <benefit>.
-
-  Background:
-    Given <common precondition shared by all scenarios>
-
-  @<PREFIX>-<NNN>
-  Scenario: <Descriptive behavior statement>
-    Given <precondition>
-    When <action>
-    Then <observable outcome>
-
-  @<PREFIX>-<NNN>
-  Scenario Outline: <Parameterized behavior>
-    Given <precondition>
-    When <action with "<parameter>">
-    Then <expected> outcome is observed
-
-    Examples:
-      | parameter | expected |
-      | value1    | result1  |
-      | value2    | result2  |
-```
-
-**Key structural rules:**
-
-1. **Feature-level tag:** Every file gets `@<feature-slug>` as the first tag (e.g., `@product-browsing`).
-
-2. **Feature description:** The `Feature:` block includes the user story narrative (As a / I want / So that). This replaces the user story document. A feature file may contain scenarios from multiple original user stories -- the Feature description captures the primary user motivation.
-
-3. **Spec ID tags:** Every scenario gets a `@<PREFIX>-<NNN>` tag (e.g., `@PROD-001`). This is the spec requirement ID. IDs are sequential within the feature package, not within a single file. One spec ID may appear on multiple scenarios (e.g., happy path + edge case for the same requirement).
-
-4. **Background:** Use `Background:` for preconditions shared by all scenarios in the file. Common for test data setup.
-
-5. **Data tables:** Use Gherkin data tables for structured test data. Prefer tables over multiple `Given` steps when setting up multiple entities.
-
-6. **Scenario Outlines:** Use `Scenario Outline:` with `Examples:` tables when the same behavior needs testing with multiple inputs. Each row in the Examples table generates a separate test run.
-
-7. **Rule keyword (optional):** Gherkin supports the `Rule:` keyword (since Gherkin v6) for grouping scenarios under a business rule within a feature file. Use `Rule:` when a feature file has many scenarios that cluster around distinct business rules. Each `Rule:` can have its own `Background:`. This is optional -- flat scenario lists are fine for most features.
-
-#### 4. Writing effective scenarios
-
-**Given (precondition):**
-- Describe the state of the system before the action
-- Use past tense or present state ("the following products exist", "the user is logged in")
-- Set up test data using data tables when multiple entities are needed
-
-**When (action):**
-- Describe the user action or system event that triggers the behavior
-- Use present tense ("I visit", "the user clicks", "the system receives")
-- One action per scenario (if you need multiple When steps, consider splitting the scenario)
-
-**Then (outcome):**
-- Describe the observable result
-- Must be externally verifiable -- the black-box litmus test applies:
-  > Could a tester who has never seen the source code verify this using only the system's user interface or public APIs?
-- Use "should" for expectations ("I should see", "the system should display")
-
-**And / But:**
-- Use `And` to chain steps of the same type
-- Use `But` for negative assertions ("But I should not see 'deleted item'")
-
-#### 5. Black-box constraint
-
-Scenarios must ONLY describe externally observable behavior. They must NOT reference:
+**Requirements must NOT reference:**
 - Internal architecture, components, or modules
 - Database schemas, tables, or queries
 - API endpoint paths or HTTP methods
 - Programming languages, frameworks, or libraries
 - Internal data structures or algorithms
 
-Scenarios MUST describe:
+**Requirements MUST describe:**
 - What the user or external actor observes
 - What inputs produce what outputs
 - Observable system states and transitions
 - Error messages and feedback presented to the user
 
-**The step definitions (glue code) handle the internal mapping.** The `.feature` file stays technology-agnostic.
+#### 4. Check for constraint-level requirements
 
-#### 6. Check for constraint-level requirements
+While writing requirements, check each one:
+- Does this requirement apply only to this feature? -> Keep as a requirement
+- Would this requirement apply to other features too? -> Flag to the orchestrator as a potential constraint
 
-While writing scenarios, check each one:
-- Does this behavior apply only to this feature? → Keep as a scenario
-- Would this behavior apply to other features too? → Flag to the orchestrator as a potential constraint
+Example: "The system shall enforce minimum password security requirements" applies to registration, password reset, and any future password feature -> flag as a potential constraint.
 
-Example: "The system shall enforce minimum password security requirements" applies to registration, password reset, and any future password feature → flag as a potential constraint.
+If a requirement duplicates a project-wide constraint, do NOT include it. Instead, add it to `constraint_notes`:
 
-#### 7. Error and edge case coverage
-
-For each happy-path scenario, consider:
-- What happens with empty/missing data? → Write a scenario
-- What happens with invalid input? → Write a scenario
-- What happens at boundaries (zero items, max items)? → Write a scenario
-- What happens when an external dependency fails? → Write a scenario
-
-Tag error/edge scenarios with the same spec ID as the happy path they relate to.
-
-#### 8. Write skeleton step definitions
-
-After creating `.feature` files, generate skeleton step definitions so the scenarios can be wired up during implementation.
-
-Step definition files go in `docs/features/<slug>/steps/`:
-
-```javascript
-// docs/features/<slug>/steps/<name>.steps.js
-import { Given, When, Then } from "@cucumber/cucumber";
-
-Given("the following products exist:", async function (dataTable) {
-  // TODO: implement during needs-implementation
-});
-
-When("I visit the product catalog", async function () {
-  // TODO: implement during needs-implementation
-});
-
-Then("I should see {int} products", async function (count) {
-  // TODO: implement during needs-implementation
-});
+```yaml
+constraint_notes:
+  - constraint: "All user input must be validated before processing."
+    category: Security
+    note: >-
+      Input validation for search queries is enforced by the project-wide
+      constraint. Not duplicated as a requirement here.
 ```
 
-> **Language note:** Step definitions must be in the same language as the project. The example above uses JavaScript with `@cucumber/cucumber` (cucumber-js). For TypeScript projects, use `.steps.ts` files with type annotations. For Java projects, use `cucumber-jvm`. For Ruby, use `cucumber-ruby`. The `.feature` files themselves are language-agnostic and work with any Cucumber implementation.
+#### 5. Error and edge case coverage
 
-> **Configuration note:** Since feature files live in `docs/features/` (not the cucumber-js default of `features/`), the project needs a `cucumber.js` configuration file:
-> ```javascript
-> // cucumber.js
-> export default {
->   paths: ['docs/features/**/*.feature'],
->   import: ['docs/features/**/steps/*.js'],
-> }
-> ```
+For each happy-path requirement, consider:
+- What happens with empty/missing data? -> Write an unwanted-behavior requirement
+- What happens with invalid input? -> Write an unwanted-behavior requirement
+- What happens at boundaries (zero items, max items)? -> Write a requirement
+- What happens when an external dependency fails? -> Write an unwanted-behavior requirement
 
-**Step definition rules:**
-- Use `TODO` markers for unimplemented steps -- implementation happens during `needs-implementation`
-- Follow the project's existing step definition conventions if any exist
-- Reuse existing step definitions where possible (Cucumber matches by regex/expression)
-- Step definitions are NOT expected to pass before implementation
-- Use regular `function()` expressions (not arrow functions) to access the Cucumber World via `this`
+#### 6. Assign IDs
 
-### Adding scenarios to an existing feature
+- Story IDs: Sequential within the file (US-001, US-002, ...). Zero-padded to 3 digits.
+- Requirement IDs: Sequential across the entire feature (PREFIX-001, PREFIX-002, ...). Zero-padded to 3 digits. IDs are assigned in order of appearance, across all stories.
 
-1. Read existing `.feature` files and identify the next available spec ID (`<PREFIX>-<NNN>`).
-2. Before adding, check for scenarios with substantially similar behavior. If a potential duplicate is found, present both to the user and ask whether to merge, replace, or keep both.
-3. Assign the next sequential spec ID after the highest existing ID in the feature package.
-4. Add scenarios to the appropriate existing `.feature` file, or create a new `.feature` file if the new behavior represents a distinct capability area.
-5. Generate skeleton step definitions for any new steps.
+#### 7. Write the YAML file
 
-### Modifying existing scenarios
+Create `docs/features/<slug>/spec.yaml` following the schema. Include the YAML Language Server schema comment at the top for IDE validation:
 
-1. Identify which scenarios the user wants to modify.
-2. Present the proposed changes: show the current scenario alongside the new scenario.
+```yaml
+# yaml-language-server: $schema=../../../skills/needs-features/schemas/feature-spec.schema.json
+```
+
+#### 8. Validate
+
+Run the validation script to verify the spec:
+
+```
+node scripts/validate-specs.js docs/features/<slug>/spec.yaml
+```
+
+Fix any errors before reporting completion.
+
+### Adding stories/requirements to an existing spec
+
+1. Read the existing spec and identify the next available story ID and requirement ID.
+2. Before adding, check for stories with substantially similar scope. If a potential duplicate is found, present both to the user and ask whether to merge, replace, or keep both.
+3. Assign the next sequential IDs.
+4. Bump the version: MINOR (new content added).
+5. Update `last_updated` to today's date.
+6. Run validation.
+
+### Modifying existing stories/requirements
+
+1. Identify which stories or requirements the user wants to modify.
+2. Present the proposed changes: show the current text alongside the new text.
 3. Ask the user to confirm before applying.
-4. Update step definitions if step text changed.
+4. Bump the version:
+   - Requirements fundamentally rewritten or removed: MAJOR
+   - Requirements refined or added (non-breaking): MINOR
+   - Typos, formatting, clarifications: PATCH
+5. Update `last_updated` to today's date.
+6. Run validation.
 
-### Removing scenarios
+### Removing stories/requirements
 
-1. Identify the scenarios to remove.
-2. **Warn about downstream impact:** Removing scenarios may make the feature's design stale. Inform the user.
+1. Identify the stories or requirements to remove.
+2. **Warn about downstream impact:** Removing requirements may make the feature's design stale. Inform the user.
 3. Ask the user to confirm.
-4. Remove the scenarios. Do not renumber remaining spec ID tags (IDs are stable).
-5. Remove orphaned step definitions (steps no longer referenced by any scenario).
+4. Remove the items. Do not renumber remaining IDs (IDs are stable).
+5. Bump the version: MAJOR (content removed).
+6. Update `last_updated` to today's date.
+7. Run validation. Note: the sequential numbering check will report gaps for removed IDs -- this is expected after removals and can be acknowledged.
 
-### Syncing feature files
+### Syncing an existing spec
 
 When the user modifies the intent or the orchestrator detects a need for updates:
 
-#### 1. Change detection
+```mermaid
+flowchart TD
+    START["Sync triggered"] --> STALE{"Version changed<br/>or intent changed?"}
 
-Use `git diff` on the `.feature` files to identify what changed:
-- **New scenarios** added
-- **Modified scenarios** (changed Given/When/Then steps or tags)
-- **Removed scenarios**
+    STALE -->|No| CURRENT["Spec appears current<br/>-> report to orchestrator"]
+    STALE -->|Yes| ANALYZE["Content-based<br/>change analysis"]
 
-#### 2. Downstream impact
+    ANALYZE --> NEW["New functionality<br/>-> add stories/reqs"]
+    ANALYZE --> MOD["Modified behavior<br/>-> update affected reqs"]
+    ANALYZE --> UNCH["Unchanged stories<br/>-> no action"]
+    ANALYZE --> ORPH["Removed functionality<br/>-> mark for removal"]
+    ANALYZE --> PROM["Promoted to constraint<br/>-> mark for removal"]
 
-If `.feature` files change:
-- `design.adoc` may become stale (if new scenarios require design changes)
-- Step definitions may need updating (if step text changed)
-- Implementation may need updating (if behavioral expectations changed)
+    NEW --> REPORT["Present change report<br/>to user"]
+    MOD --> REPORT
+    ORPH --> REPORT
+    PROM --> REPORT
 
-Report the impact to the orchestrator.
+    REPORT --> CONFIRM{"User<br/>confirms?"}
+    CONFIRM -->|Yes| APPLY["Apply changes"]
+    CONFIRM -->|Adjust| REPORT
 
-## Organizing Feature Files
+    APPLY --> BUMP["Version bump<br/>+ validate"]
+```
 
-### File naming
+#### 1. Content-based change analysis
 
-Name `.feature` files after the capability area they describe:
-- `product-catalog.feature` (not `us-001.feature` or `spec.feature`)
-- `product-search.feature`
-- `cart-management.feature`
-- `checkout-payment.feature`
+1. Read the current intent and the existing spec
+2. For each story and requirement, determine:
+   - **New** -- no corresponding story/requirement exists -> add
+   - **Modified** -- the intent changed the expected behavior -> update
+   - **Unchanged** -- still aligned -> no action
+3. For each existing requirement, check if its source story still makes sense
+   - **Orphaned** -- story was removed -> mark for removal
+4. Check for requirements that now overlap with constraints added since last sync
+   - **Promoted to constraint** -- now covered by `docs/constraints.adoc` -> mark for removal
 
-### Multiple perspectives in one feature file
+#### 2. Present change report
 
-A single `.feature` file can contain scenarios that address multiple user motivations. The `Feature:` description captures the primary motivation. If scenarios from different perspectives share the same capability area, they belong in the same file.
+```
+Spec sync for product-browsing:
 
-### Splitting feature files
+Added:
+  - US-003: Paginate Products (new story + PROD-009, PROD-010)
 
-Split a `.feature` file when:
-- It exceeds ~20 scenarios (becomes hard to navigate)
-- Scenarios clearly fall into distinct capability areas
-- The `Background:` setup would need to differ between groups of scenarios
+Modified:
+  - PROD-006: Added "sorted by relevance" to search results display
 
-## Quality Checklist
+Removed:
+  - US-001/PROD-004: Sort feature removed per user request
 
-Before finalizing, verify every item:
-- Every `.feature` file has a `@<feature-slug>` tag
-- Every `.feature` file has a `Feature:` description with As a / I want / So that
-- Every scenario has a `@<PREFIX>-<NNN>` spec ID tag
-- Scenario descriptions are clear and describe one specific behavior
-- Given/When/Then steps follow the tense conventions (past/present state, present action, expected outcome)
-- All scenarios pass the black-box litmus test (no internal implementation details)
-- Error and edge cases are covered alongside happy paths
-- No scenario spans multiple features
+No changes to: PROD-001, PROD-002, PROD-003, PROD-005, PROD-007, PROD-008
+```
+
+Ask the user to confirm before applying changes.
+
+#### 3. Apply changes and bump versions
+
+| Change Type | Version Bump |
+|---|---|
+| Stories/requirements removed | MAJOR |
+| Stories/requirements added or modified | MINOR |
+| Metadata-only changes | PATCH |
+
+Update `last_updated` and run validation.
+
+## EARS Sentence Types Quick Reference
+
+For full reference, consult the `ears-requirements` skill. Summary of patterns:
+
+| Type | Template | When to Use |
+|---|---|---|
+| Ubiquitous | The \<system\> shall \<response\>. | Always true, no trigger |
+| Event-driven | When \<trigger\>, the \<system\> shall \<response\>. | Triggered by an event |
+| State-driven | While \<state\>, the \<system\> shall \<response\>. | Applies in a state/mode |
+| Unwanted behavior | If \<condition\>, then the \<system\> shall \<response\>. | Error/failure handling |
+| Optional feature | Where \<feature\>, the \<system\> shall \<response\>. | Feature-dependent |
+| Complex | While \<state\>, when \<trigger\>, the \<system\> shall \<response\>. | Multiple conditions |
+
+## Quality Checklist (INVEST + EARS)
+
+Before finalizing, verify:
+- Every story has a clear narrative (as_a / i_want / so_that)
+- Every story delivers user value
+- Stories are independent and can be implemented in any order
+- No story spans multiple features
+- Every requirement uses the correct EARS sentence type
+- Every requirement passes the black-box litmus test
+- Every requirement contains "shall"
+- Every requirement has a unique ID with the feature prefix
+- Requirement IDs are sequential across the feature
+- No duplicate IDs
+- Error and edge case scenarios are covered using unwanted-behavior type
 - Cross-cutting requirements have been flagged as potential constraints
-- Skeleton step definitions exist for all steps
-- `.feature` files parse correctly (valid Gherkin syntax)
-- No duplicate spec IDs within the feature package
+- The validation script passes: `node scripts/validate-specs.js docs/features/<slug>/spec.yaml`
 
 ## Reference
 
-See `references/example.adoc` for a complete example showing how a feature intent becomes Gherkin feature files.
+See `references/product-browsing.spec.yaml`, `references/shopping-cart.spec.yaml`, and `references/checkout.spec.yaml` for complete examples showing how a feature intent becomes a YAML specification with stories and EARS requirements.

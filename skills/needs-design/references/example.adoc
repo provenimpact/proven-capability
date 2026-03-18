@@ -1,12 +1,12 @@
 = Design Example
 
-This file shows a complete design document for the `shopping-cart` feature of an e-commerce project. The feature's Gherkin scenarios are used as input. The design includes Mermaid diagrams for component interactions and the primary user flow.
+This file shows a complete design document for the `shopping-cart` feature of an e-commerce project. The feature's spec.yaml requirements are used as input. The design includes Mermaid diagrams for component interactions and the primary user flow.
 
 == Context
 
 Given:
 
-* `docs/features/shopping-cart/cart-management.feature` with scenarios @CART-001 through @CART-005 covering add-to-cart, duplicate handling, view cart, update quantity, and remove item
+* `docs/features/shopping-cart/spec.yaml` with stories US-001 (Add to Cart) and US-002 (View Cart), requirements CART-001 through CART-007
 * `docs/adrs/0001-use-typescript.adoc` (Accepted)
 * `docs/adrs/0002-use-postgresql.adoc` (Accepted)
 * `docs/adrs/0003-use-nextjs.adoc` (Accepted)
@@ -17,6 +17,7 @@ Given:
 ....
 = Design: Shopping Cart
 :version: 1.0.0
+:source-spec-version: 1.0.0
 :status: Current
 :last-updated: 2026-02-20
 :feature: shopping-cart
@@ -139,17 +140,24 @@ Business logic for cart operations. Enforces stock validation, quantity constrai
 
 CartContext (React Context) holds client-side cart state. Synced with backend on mutations. Persisted in localStorage for anonymous users.
 
-== Scenario Resolution
+== Requirement Resolution
 
-=== Feature: Cart Management (cart-management.feature)
+=== US-001: Add to Cart
 
-Components:: ProductCard (existing), CartContext, CartIcon, Cart Page, POST/PATCH/DELETE /api/cart/items, CartService
-Scenarios::
-* @CART-001: Add product to cart -> ProductCard button triggers POST /api/cart/items via CartService, CartContext updates, CartIcon reflects count
-* @CART-002: Adding duplicate product increments quantity -> CartService increments quantity if product already in cart
-* @CART-003: View cart contents -> Cart Page reads CartContext and renders line items with prices and total
-* @CART-004: Update item quantity -> PATCH /api/cart/items via CartService, CartContext updates, Cart Page re-renders with updated total
-* @CART-005: Remove item from cart -> DELETE /api/cart/items via CartService, CartContext updates, Cart Page removes item and recalculates total
+Components:: ProductCard (existing), CartContext, CartIcon, POST /api/cart/items, CartService
+Requirements::
+* CART-001: Add product and update cart count -> ProductCard button triggers POST /api/cart/items via CartService, CartContext updates, CartIcon reflects count
+* CART-002: Display success confirmation -> CartContext triggers toast notification after successful API response
+* CART-003: Increment quantity for duplicates -> CartService checks if product exists in cart, increments quantity via upsert if so
+
+=== US-002: View Cart
+
+Components:: Cart Page, CartContext, PATCH /api/cart/items, DELETE /api/cart/items, CartService
+Requirements::
+* CART-004: Display cart items with details -> Cart Page reads CartContext, renders line items with names, quantities, prices
+* CART-005: Display correct cart total -> Cart Page computes total from CartContext items (price * quantity sum)
+* CART-006: Update quantity and recalculate -> PATCH /api/cart/items via CartService, CartContext updates, Cart Page re-renders with updated totals
+* CART-007: Remove item and recalculate -> DELETE /api/cart/items via CartService, CartContext updates, Cart Page removes item and recalculates total
 ....
 
 == Data Model File (docs/features/shopping-cart/data-model.adoc)
@@ -199,3 +207,4 @@ Scenarios::
 - Architecture constraint is explicitly respected: CartService contains business logic, route handlers only delegate
 - The component interaction diagram shows all components and their communication paths
 - The sequence diagram traces the primary add-to-cart flow through all layers
+- The `:source-spec-version:` tracks which spec.yaml version was used as input
