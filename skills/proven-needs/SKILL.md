@@ -68,7 +68,7 @@ docs/features/<slug>/
 └── tasks.adoc           # WORK: phased implementation breakdown
 ```
 
-Gherkin `.feature` files replace the separate `user-stories.adoc`, `spec.adoc`, and test files. Each `.feature` file contains:
+Gherkin `.feature` files serve as the unified artifact for requirements, specifications, and executable tests. Each `.feature` file contains:
 - A `Feature:` description with As a / I want / So that (the user story)
 - `Scenario:` blocks with Given/When/Then (the specification and test)
 - `@<PREFIX>-<NNN>` tags on each scenario (the spec requirement IDs)
@@ -103,7 +103,7 @@ These operate within a single feature package:
 
 | Capability | Skill | Domain |
 |---|---|---|
-| Features | `needs-features` | Create/update Gherkin feature files (stories + specs + tests in one) |
+| Features | `needs-features` | Create/update Gherkin feature files (requirements, specifications, and executable tests in one) |
 | Design | `needs-design` | Create implementation blueprint for a feature |
 | Tasks | `needs-tasks` | Break design into phased implementation units |
 | Implementation | `needs-implementation` | Write and verify code for a feature |
@@ -144,7 +144,7 @@ When this skill is invoked, immediately build the current state model:
    - **`:result: In Progress`** -- the prior session started a transition but ended unexpectedly (crash, context exhaustion, tool failure) without cleanly recording a result. The entry contains the intent and plan but `:capabilities-invoked:` may be empty or incomplete. Propose resuming the transition or marking it as `:result: Failed` before starting new work.
    - **`:result: Partial`** -- the user explicitly stopped a transition mid-way. The entry lists capabilities completed vs. remaining. Propose completing the remaining capabilities before starting new work.
    
-   In both cases, the transition's `:features:` and `:capabilities-invoked:` fields provide useful context for understanding why artifacts are in their current state (e.g., stories and spec exist but design is missing because a prior transition was interrupted).
+   In both cases, the transition's `:features:` and `:capabilities-invoked:` fields provide useful context for understanding why artifacts are in their current state (e.g., `.feature` files exist but design is missing because a prior transition was interrupted).
 
 #### 1.2 Analyze codebase
 
@@ -182,7 +182,7 @@ Classify the desired state into one or more intent types:
 |---|---|---|
 | **Feature evolution** | Describes user-facing capability, has a user journey | "Users can reset password via SMS" |
 | **Constraint declaration** | Universal quantifiers, system-as-subject, applies to features that don't exist yet | "All API endpoints must enforce rate limiting" |
-| **Artifact maintenance** | References existing artifacts, sync/update language | "Specs are in sync with current stories" |
+| **Artifact maintenance** | References existing artifacts, sync/update language | "Design is in sync with current .feature files" |
 | **Dependency maintenance** | References packages, versions, vulnerabilities | "No dependencies have known vulnerabilities" |
 | **Architecture evolution** | References system structure, technology changes | "Authentication uses OAuth2 instead of sessions" |
 | **Quality improvement** | References tests, coverage, code quality | "All API endpoints have integration tests" |
@@ -580,7 +580,7 @@ flowchart TD
     CODE --> CLASSIFY
 
     CLASSIFY -->|"Patch deps, doc fixes,<br/>metadata, sync unchanged"| LOW["Low risk"]
-    CLASSIFY -->|"Minor deps, design adjust,<br/>add specs for existing stories"| MED["Medium risk"]
+    CLASSIFY -->|"Minor deps, design adjust,<br/>sync design with updated scenarios"| MED["Medium risk"]
     CLASSIFY -->|"New features, breaking changes,<br/>arch changes, major bumps, code"| HIGH["High risk"]
 
     LOW --> AUTO["Auto-approve:<br/>execute immediately"]
@@ -592,8 +592,8 @@ Transitions are classified by risk level:
 
 | Risk Level | Auto-approve? | Criteria |
 |---|---|---|
-| **Low** | Yes, execute immediately | Patch dependency updates; sync specs with unchanged story semantics; format/metadata fixes; documentation updates |
-| **Medium** | Propose with summary, ask | Minor dependency updates; design adjustments for modified stories; adding specs for existing stories |
+| **Low** | Yes, execute immediately | Patch dependency updates; sync design with unchanged scenario semantics; format/metadata fixes; documentation updates |
+| **Medium** | Propose with summary, ask | Minor dependency updates; design adjustments for modified scenarios; syncing design with updated .feature files |
 | **High** | Full plan, require approval | New features; breaking changes; architecture changes; major version bumps; constraint modifications; code changes |
 
 **Risk factors:**
@@ -606,7 +606,7 @@ Transitions are classified by risk level:
 
 The orchestrator can detect conditions and propose desired states:
 - "Dependency X has a critical CVE -- desired state: X is patched" (auto-approve if patch-level)
-- "Feature user-auth specs are stale relative to stories" (propose sync, medium risk)
+- "Feature user-auth design is stale relative to .feature files" (propose sync, medium risk)
 - "3 features share the same password validation requirement" (propose as constraint, high risk)
 
 For auto-approved transitions, inform the user after execution:

@@ -20,7 +20,7 @@ Look for `docs/features/<slug>/`. If the directory does not exist, note that thi
 If `docs/features/<slug>/*.feature` files exist:
 - Count total `.feature` files
 - Extract all `Feature:` names and descriptions
-- Extract all scenario tags (e.g., `@PROD-001`, `@US-001`)
+- Extract all scenario tags (e.g., `@PROD-001`, `@CART-001`)
 - Count total scenarios and scenario outlines
 - Note the feature-level tags
 

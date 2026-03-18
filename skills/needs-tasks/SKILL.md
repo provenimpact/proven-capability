@@ -13,9 +13,9 @@ Assess the current state of the task list for this feature.
 
 ### 1. Read feature design
 
-Read `docs/features/<slug>/design.adoc`. Extract `:version:`, `:status:`, system design sections, story resolution mappings. Also read `data-model.adoc` and `contracts/` if they exist within the feature package.
+Read `docs/features/<slug>/design.adoc`. Extract `:version:`, `:status:`, system design sections, scenario resolution mappings. Also read `data-model.adoc` and `contracts/` if they exist within the feature package.
 
-**If missing:** Note that design is unavailable. Report to the orchestrator. Tasks will be derived directly from user stories (story-driven derivation). If proceeding: set `:source-design-version:` to `n/a`.
+**If missing:** Note that design is unavailable. Report to the orchestrator. Tasks will be derived directly from feature scenarios (scenario-driven derivation). If proceeding: set `:source-design-version:` to `n/a`.
 
 ### 2. Read feature files
 
@@ -64,9 +64,9 @@ Given the desired state from the orchestrator, determine what action is needed.
 
 ### 2. Transitive staleness check
 
-If `:source-design-version:` matches the current design version, trust that the design is current -- the design skill is responsible for tracking its own upstream staleness against stories and specs.
+If `:source-design-version:` matches the current design version, trust that the design is current -- the design skill is responsible for tracking its own upstream staleness against `.feature` files.
 
-If `:source-design-version:` does not match, the task list is stale. Warn the orchestrator and recommend updating the design first (which will cascade any upstream story/spec changes into the design before tasks are regenerated).
+If `:source-design-version:` does not match, the task list is stale. Warn the orchestrator and recommend updating the design first (which will cascade any upstream `.feature` file changes into the design before tasks are regenerated).
 
 Staleness detection flows through the design. The design skill is responsible for tracking its own upstream staleness against `.feature` files via git.
 

@@ -23,23 +23,23 @@ Read all `docs/features/<slug>/*.feature` files. Extract:
 
 **If missing:** Report to the orchestrator that feature files are missing. The orchestrator decides whether to invoke `needs-features` first.
 
-### 3. Read project-wide artifacts
+### 2. Read project-wide artifacts
 
 - **`docs/adrs/`** -- read all ADRs with status `Accepted`. These are technology constraints.
 - **`docs/constraints.adoc`** -- read all constraints, particularly architecture and quality constraints.
 - **`docs/architecture.adoc`** -- if it exists, understand the current system architecture for context.
 
-### 4. Read existing design
+### 3. Read existing design
 
 If `docs/features/<slug>/design.adoc` exists:
 - Read `:version:`, `:status:`, `:last-updated:`
 - Read the full design content
 
-### 5. Analyze codebase
+### 4. Analyze codebase
 
 If this is not a greenfield project, analyze the current code structure to understand what already exists. Look at directory structure, key source files, configuration files, and existing patterns.
 
-### 6. Report observation
+### 5. Report observation
 
 Return to the orchestrator:
 ```
@@ -106,13 +106,13 @@ flowchart TD
         P1 --> SYS["System design<br/>+ Mermaid diagrams"]
         P1 --> DATA["Data model<br/>(if applicable)"]
         P1 --> IFACE["Interface contracts<br/>(if applicable)"]
-        P1 --> STORY["Story resolution<br/>(map stories → design)"]
+        P1 --> SCENRES["Scenario resolution<br/>(map scenarios → design)"]
     end
 
     SYS --> WRITE["Write design files"]
     DATA --> WRITE
     IFACE --> WRITE
-    STORY --> WRITE
+    SCENRES --> WRITE
 ```
 
 ### Phase 0: Research and Decisions
@@ -346,7 +346,7 @@ The orchestrator passes:
 **Steps:**
 
 1. For each divergence routed to this skill:
-   a. Locate the relevant design sections (system design, story resolution, data model, contracts)
+   a. Locate the relevant design sections (system design, scenario resolution, data model, contracts)
    b. Update the design to accurately reflect what was built
    c. Ensure the Scenario Resolution section still correctly maps scenarios to design elements
 2. Verify that the updated design remains internally consistent (no orphaned references, no contradictions between sections)
