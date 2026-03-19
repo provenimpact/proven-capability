@@ -158,6 +158,7 @@ Create `docs/features/<slug>/tasks.yaml`:
 ```yaml
 # yaml-language-server: $schema=../../../skills/needs-tasks/schemas/tasks.schema.json
 
+schema_version: "1.0.0"
 feature: <slug>
 version: "1.0.0"
 status: Current

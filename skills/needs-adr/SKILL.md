@@ -89,6 +89,7 @@ Create `docs/adrs/NNNN-<kebab-case-title>.yaml`:
 ```yaml
 # yaml-language-server: $schema=../../skills/needs-adr/schemas/adr.schema.json
 
+schema_version: "1.0.0"
 id: ADR-NNNN
 title: <Decision Title>
 status: Accepted
@@ -147,6 +148,7 @@ Create or update `docs/adrs/index.yaml`:
 ```yaml
 # yaml-language-server: $schema=../../skills/needs-adr/schemas/adr-index.schema.json
 
+schema_version: "1.0.0"
 version: "1.0.0"
 last_updated: "YYYY-MM-DD"
 

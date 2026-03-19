@@ -3,10 +3,16 @@
   "$id": "https://provenimpact.github.io/proven-needs/schemas/adr-index.schema.json",
   "title": "ADR Index",
   "description": "Index of all architecture decision records in the project. Provides a summary view of all decisions.",
+  "version": "1.0.0",
   "type": "object",
-  "required": ["version", "last_updated", "decisions"],
+  "required": ["schema_version", "version", "last_updated", "decisions"],
   "additionalProperties": false,
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Version of the ADR index schema this file was written against."
+    },
     "version": {
       "type": "string",
       "pattern": "^\\d+\\.\\d+\\.\\d+$",

@@ -3,10 +3,16 @@
   "$id": "https://provenimpact.github.io/proven-needs/schemas/feature-spec.schema.json",
   "title": "Feature Specification",
   "description": "A feature specification combining user stories and EARS requirements with full traceability. Each user story has requirements that resolve it. Requirement IDs and story IDs must be unique within the feature.",
+  "version": "1.0.0",
   "type": "object",
-  "required": ["feature", "prefix", "version", "last_updated", "stories"],
+  "required": ["schema_version", "feature", "prefix", "version", "last_updated", "stories"],
   "additionalProperties": false,
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Version of the feature-spec schema this file was written against."
+    },
     "feature": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$",

@@ -3,10 +3,16 @@
   "$id": "https://provenimpact.github.io/proven-needs/schemas/adr.schema.json",
   "title": "Architecture Decision Record",
   "description": "A single architecture decision record (ADR). Records a technology or architecture decision with context, consequences, and alternatives considered.",
+  "version": "1.0.0",
   "type": "object",
-  "required": ["id", "title", "status", "date", "deciders", "context", "decision", "consequences"],
+  "required": ["schema_version", "id", "title", "status", "date", "deciders", "context", "decision", "consequences"],
   "additionalProperties": false,
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Version of the ADR schema this file was written against."
+    },
     "id": {
       "type": "string",
       "pattern": "^ADR-\\d{4}$",

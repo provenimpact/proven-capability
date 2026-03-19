@@ -21,6 +21,7 @@ The YAML file has this top-level structure:
 
 ```yaml
 # yaml-language-server: $schema=<path-to-schema>
+schema_version: "1.0.0"
 feature: <slug>
 prefix: <PREFIX>
 version: "1.0.0"

@@ -47,6 +47,22 @@ if not SCHEMA_PATH.exists():
     sys.exit(2)
 
 schema = json.loads(SCHEMA_PATH.read_text())
+SCHEMA_VERSION = schema.get("version", "0.0.0")
+
+
+def check_schema_version(doc: dict, label: str) -> list[str]:
+    """Check that the artifact's schema_version is compatible with the schema."""
+    artifact_ver = doc.get("schema_version", "")
+    if not artifact_ver:
+        return [f"{label}: missing schema_version field"]
+    schema_major = SCHEMA_VERSION.split(".")[0]
+    artifact_major = artifact_ver.split(".")[0]
+    if schema_major != artifact_major:
+        return [
+            f"{label}: schema_version {artifact_ver} is incompatible with "
+            f"schema version {SCHEMA_VERSION} (major version mismatch)"
+        ]
+    return []
 
 
 def main():
@@ -81,6 +97,9 @@ def main():
             print(f"  - {err}")
         print(f"\n{len(errors)} error(s) found.")
         sys.exit(1)
+
+    # Schema version compatibility
+    errors.extend(check_schema_version(doc, str(file_path)))
 
     # Category name uniqueness
     category_names = set()

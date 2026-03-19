@@ -3,10 +3,16 @@
   "$id": "https://provenimpact.github.io/proven-needs/schemas/constraints.schema.json",
   "title": "Project Constraints",
   "description": "Project-wide invariants that must not be violated across any state transition. Constraints are organized by category and each has a unique ID for traceability.",
+  "version": "1.0.0",
   "type": "object",
-  "required": ["version", "last_updated", "categories"],
+  "required": ["schema_version", "version", "last_updated", "categories"],
   "additionalProperties": false,
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Version of the constraints schema this file was written against."
+    },
     "version": {
       "type": "string",
       "pattern": "^\\d+\\.\\d+\\.\\d+$",

@@ -51,6 +51,23 @@ for p in (ADR_SCHEMA_PATH, INDEX_SCHEMA_PATH):
 
 adr_schema = json.loads(ADR_SCHEMA_PATH.read_text())
 index_schema = json.loads(INDEX_SCHEMA_PATH.read_text())
+ADR_SCHEMA_VERSION = adr_schema.get("version", "0.0.0")
+INDEX_SCHEMA_VERSION = index_schema.get("version", "0.0.0")
+
+
+def check_schema_version(doc: dict, label: str, schema_version: str) -> list[str]:
+    """Check that the artifact's schema_version is compatible with the schema."""
+    artifact_ver = doc.get("schema_version", "")
+    if not artifact_ver:
+        return [f"{label}: missing schema_version field"]
+    schema_major = schema_version.split(".")[0]
+    artifact_major = artifact_ver.split(".")[0]
+    if schema_major != artifact_major:
+        return [
+            f"{label}: schema_version {artifact_ver} is incompatible with "
+            f"schema version {schema_version} (major version mismatch)"
+        ]
+    return []
 
 
 def main():
@@ -93,6 +110,9 @@ def main():
             path = "/".join(str(p) for p in e.absolute_path) or "(root)"
             errors.append(f"{filename}: schema: /{path} {e.message}")
             continue
+
+        # Schema version compatibility
+        errors.extend(check_schema_version(doc, filename, ADR_SCHEMA_VERSION))
 
         # Filename-ID consistency
         file_num_match = re.match(r"^(\d{4})-", filename)
@@ -157,6 +177,11 @@ def main():
                 errors.append(f"index.yaml: schema: /{path} {e.message}")
             else:
                 print("PASS  index.yaml")
+
+                # Schema version compatibility
+                errors.extend(
+                    check_schema_version(index_doc, "index.yaml", INDEX_SCHEMA_VERSION)
+                )
 
                 # Cross-reference: every ADR file should be in the index
                 index_ids = {d["id"] for d in index_doc["decisions"]}

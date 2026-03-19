@@ -531,6 +531,7 @@ Transitions are classified by risk level:
 ```yaml
 # yaml-language-server: $schema=../../skills/proven-needs/schemas/constraints.schema.json
 
+schema_version: "1.0.0"
 version: "1.0.0"
 last_updated: "YYYY-MM-DD"
 

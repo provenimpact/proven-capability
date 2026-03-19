@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=../schemas/tasks.schema.json
 # Implementation tasks: shopping-cart
 
+schema_version: "1.0.0"
 feature: shopping-cart
 version: "1.0.0"
 status: Current

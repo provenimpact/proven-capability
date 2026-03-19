@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=../schemas/adr.schema.json
 
+schema_version: "1.0.0"
 id: ADR-0001
 title: Use TypeScript for Backend and Frontend
 status: Accepted

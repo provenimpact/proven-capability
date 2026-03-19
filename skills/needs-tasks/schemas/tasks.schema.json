@@ -3,10 +3,16 @@
   "$id": "https://provenimpact.github.io/proven-needs/schemas/tasks.schema.json",
   "title": "Implementation Tasks",
   "description": "Phased implementation task list for a feature. Tasks are organized into sequential phases with parallelism markers and full traceability back to spec.yaml requirements.",
+  "version": "1.0.0",
   "type": "object",
-  "required": ["feature", "version", "status", "source_spec_version", "last_updated", "overview", "phases"],
+  "required": ["schema_version", "feature", "version", "status", "source_spec_version", "last_updated", "overview", "phases"],
   "additionalProperties": false,
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Version of the tasks schema this file was written against."
+    },
     "feature": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$",

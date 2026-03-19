@@ -54,6 +54,22 @@ if not SCHEMA_PATH.exists():
     sys.exit(2)
 
 schema = json.loads(SCHEMA_PATH.read_text())
+SCHEMA_VERSION = schema.get("version", "0.0.0")
+
+
+def check_schema_version(doc: dict, label: str) -> list[str]:
+    """Check that the artifact's schema_version is compatible with the schema."""
+    artifact_ver = doc.get("schema_version", "")
+    if not artifact_ver:
+        return [f"{label}: missing schema_version field"]
+    schema_major = SCHEMA_VERSION.split(".")[0]
+    artifact_major = artifact_ver.split(".")[0]
+    if schema_major != artifact_major:
+        return [
+            f"{label}: schema_version {artifact_ver} is incompatible with "
+            f"schema version {SCHEMA_VERSION} (major version mismatch)"
+        ]
+    return []
 
 
 def find_task_files(args: list[str]) -> tuple[list[Path], Path | None]:
@@ -141,6 +157,9 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
         path = "/".join(str(p) for p in e.absolute_path) or "(root)"
         errors.append(f"{label}: schema: /{path} {e.message}")
         return errors
+
+    # Schema version compatibility
+    errors.extend(check_schema_version(doc, label))
 
     phases = doc["phases"]
 
