@@ -1,0 +1,53 @@
+# Implementation Tasks: {{ doc.feature }}
+
+**Version:** {{ doc.version }} | **Status:** {{ doc.status }} | **Updated:** {{ doc.last_updated }}
+**Source spec:** {{ doc.source_spec_version }}{% if doc.source_design_version %} | **Source design:** {{ doc.source_design_version }}{% endif %}
+
+{{ doc.overview }}
+
+{% for phase in doc.phases %}
+## Phase {{ loop.index }}: {{ phase.name }}
+
+{{ phase.description }}
+
+{% for task in phase.tasks %}
+- [{{ "x" if task.done is defined and task.done else " " }}] **{{ task.id }}:** {{ task.title }} `[{{ task.execution }}]`
+  {% if task.components is defined and task.components %}
+  - **Components:** {{ task.components | join(", ") }}
+  {% endif %}
+  - **Stories:** {{ task.stories | join(", ") }}
+  - **Requirements:** {{ task.requirements | join(", ") }}
+  - {{ task.description }}
+{% endfor %}
+
+{% endfor %}
+
+## Traceability
+
+{% set all_stories = [] %}
+{% set story_reqs = {} %}
+{% set story_tasks = {} %}
+{% for phase in doc.phases %}
+{% for task in phase.tasks %}
+{% for sid in task.stories %}
+{% if sid not in story_reqs %}
+{% set _ = story_reqs.update({sid: []}) %}
+{% set _ = story_tasks.update({sid: []}) %}
+{% endif %}
+{% for rid in task.requirements %}
+{% if rid not in story_reqs[sid] %}
+{% set _ = story_reqs[sid].append(rid) %}
+{% endif %}
+{% endfor %}
+{% if task.id not in story_tasks[sid] %}
+{% set _ = story_tasks[sid].append(task.id) %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endfor %}
+
+| Story | Requirements | Tasks |
+|-------|-------------|-------|
+{% for sid in story_reqs %}
+| {{ sid }} | {{ story_reqs[sid] | join(", ") }} | {{ story_tasks[sid] | join(", ") }} |
+{% endfor %}

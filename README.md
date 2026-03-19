@@ -333,6 +333,21 @@ python skills/proven-needs/scripts/validate-constraints.py docs/constraints.yaml
 python skills/needs-adr/scripts/validate-adrs.py docs/adrs/
 ```
 
+## Rendering
+
+YAML artifacts can be rendered as human-readable Markdown or AsciiDoc using the render script. It auto-detects artifact type from YAML content and applies Jinja2 templates.
+
+```
+python skills/proven-needs/scripts/render.py docs/features/shopping-cart/spec.yaml
+python skills/proven-needs/scripts/render.py docs/features/shopping-cart/spec.yaml --format adoc
+python skills/proven-needs/scripts/render.py docs/features/shopping-cart/spec.yaml -o spec.md
+python skills/proven-needs/scripts/render.py docs/adrs/                             # renders all ADRs
+```
+
+Dependencies: `pip install pyyaml jinja2`
+
+Templates live at `skills/proven-needs/scripts/templates/` and can be customized per project.
+
 ## Risk Classification
 
 Transitions are auto-approved or require confirmation based on risk:
