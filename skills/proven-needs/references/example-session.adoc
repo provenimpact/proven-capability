@@ -111,7 +111,7 @@ User confirms.
 2. **needs-design** creates `docs/features/product-browsing/design.adoc` v1.0.0 (`:source-spec-version: 1.0.0`)
    - During Phase 0, identifies technology decisions: framework choice, database choice
    - Invokes **needs-adr** to create ADR-0001 (TypeScript) and ADR-0002 (PostgreSQL)
-3. **needs-tasks** creates `docs/features/product-browsing/tasks.adoc` v1.0.0 (3 phases, 8 tasks)
+3. **needs-tasks** creates `docs/features/product-browsing/tasks.yaml` v1.0.0 (3 phases, 8 tasks)
 4. **needs-implementation** implements code phase by phase
 5. **Divergence check:** needs-implementation reports no divergences
 
@@ -120,7 +120,7 @@ User confirms.
 1. **needs-features** creates `docs/features/shopping-cart/spec.yaml` v1.0.0 (prefix: CART, 2 stories, 7 requirements). Schema validation passes.
 2. **needs-design** creates `docs/features/shopping-cart/design.adoc` v1.0.0
    - References existing ADRs, no new decisions needed
-3. **needs-tasks** creates `docs/features/shopping-cart/tasks.adoc` v1.0.0 (3 phases, 9 tasks)
+3. **needs-tasks** creates `docs/features/shopping-cart/tasks.yaml` v1.0.0 (3 phases, 9 tasks)
 4. **needs-implementation** implements code phase by phase
 5. **Divergence check:** needs-implementation reports 1 divergence:
 +
@@ -143,7 +143,7 @@ Orchestrator invokes **needs-design** (reconciliation mode) to update `design.ad
 2. **needs-design** creates `docs/features/checkout/design.adoc` v1.0.0
    - During Phase 0, identifies payment provider decision
    - Invokes **needs-adr** to create ADR-0003 (Stripe)
-3. **needs-tasks** creates `docs/features/checkout/tasks.adoc` v1.0.0 (3 phases, 7 tasks)
+3. **needs-tasks** creates `docs/features/checkout/tasks.yaml` v1.0.0 (3 phases, 7 tasks)
 4. **needs-implementation** implements code phase by phase
 5. **Divergence check:** needs-implementation reports no divergences
 
@@ -180,7 +180,7 @@ Desired state "users can browse products, add them to cart, and checkout" is ach
 :capabilities-invoked: needs-features, needs-design, needs-adr, needs-tasks, needs-implementation, needs-architecture
 :constraints-checked: Security (pass), Architecture (pass), Quality (pass), Licensing (pass)
 :result: Achieved
-:artifacts-modified: spec.yaml (3 features), design.adoc (3), tasks.adoc (3), 3 ADRs, architecture.adoc, source code
+:artifacts-modified: spec.yaml (3 features), design.adoc (3), tasks.yaml (3), 3 ADRs, architecture.adoc, source code
 ....
 
 ---

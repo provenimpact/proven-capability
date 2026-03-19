@@ -13,7 +13,7 @@ Assess the current state of implementation for this feature.
 
 ### 1. Read feature task list
 
-Read `docs/features/<slug>/tasks.adoc`. Extract `:version:`, `:status:`, all phases, all tasks with metadata (Components, Stories, Requirements, Description, parallel/sequential markers, tick states).
+Read `docs/features/<slug>/tasks.yaml`. Extract `:version:`, `:status:`, all phases, all tasks with metadata (Components, Stories, Requirements, Description, parallel/sequential markers, tick states).
 
 **If missing:** Check whether `docs/features/<slug>/design.adoc` exists. If so, note that implementation will follow the design's Requirement Resolution section requirement-by-requirement (no phased execution). If neither tasks nor design exist, report to the orchestrator that at minimum a design is needed.
 
@@ -44,7 +44,7 @@ Analyze current code structure, existing patterns, frameworks, and conventions t
 Return to the orchestrator:
 ```
 Feature: <slug>
-Tasks: {exists: true/false, status: "Current/Stale/Implemented", progress: "N/M ticked", phases: N}
+Tasks: {exists: true/false, status: "Current/Stale/Implemented", progress: "N/M done", phases: N}
 Design: {exists: true/false, status: "Current/Stale"}
 Spec: {exists: true, version: "X.Y.Z", stories: N, requirements: N}
 Implementation: {started: true/false, phases-complete: N, current-phase: N}
@@ -62,8 +62,8 @@ Given the desired state from the orchestrator, determine what action is needed.
 | No tasks exist, no design exists | Cannot implement. Report to orchestrator. |
 | Tasks exist, `:status:` is `Implemented` | Already complete. Report to orchestrator. |
 | Tasks exist, `:status:` is `Stale` | Warn that task list is stale. Ask orchestrator whether to proceed or update tasks first. |
-| Tasks exist, some ticked | Partial progress. Determine resume point. |
-| Tasks exist, none ticked | Start from Phase 1. |
+| Tasks exist, some done | Partial progress. Determine resume point. |
+| Tasks exist, none done | Start from Phase 1. |
 | No tasks, design exists | Requirement-by-requirement implementation from design. |
 
 ### 2. Check constraints
@@ -98,7 +98,7 @@ flowchart TD
     end
 
     MORE -->|"No / user: stop"| FINAL{"All phases<br/>complete?"}
-    FINAL -->|No| SAVE["Save progress<br/>in tasks.adoc"]
+    FINAL -->|No| SAVE["Save progress<br/>in tasks.yaml"]
     FINAL -->|Yes| MARK["Mark status:<br/>Implemented"]
     MARK --> DIVERGE["Detect design<br/>divergences"]
     DIVERGE --> REPORT["Report to<br/>orchestrator"]
@@ -110,7 +110,7 @@ Steps 1--5 repeat for each phase.
 
 #### 1. Build phase todo list
 
-Parse the tasks for the **current phase only** from the feature's `tasks.adoc`. Create a tracking list. If a todo-list tool is available (e.g., TodoWrite), use it. Otherwise, track by ticking tasks in `tasks.adoc`.
+Parse the tasks for the **current phase only** from the feature's `tasks.yaml`. Create a tracking list. If a todo-list tool is available (e.g., TodoWrite), use it. Otherwise, track by setting `done: true` on tasks in `tasks.yaml`.
 
 - Each task title becomes a todo item, prefixed with its task ID
 - All items start as `pending`
@@ -127,7 +127,7 @@ Work through tasks following the task list exactly. Do not skip, reorder, or add
 3. Read the requirement texts from spec.yaml for the task's `Requirements::` field to understand expected behavior
 4. Implement the code as described in the task's `Description::` and informed by the design
 5. Mark the task as `completed`
-6. Tick the task `[x]` in `docs/features/<slug>/tasks.adoc`
+6. Set `done: true` on the task in `docs/features/<slug>/tasks.yaml`
 
 **Ordering within a phase:**
 - **`[sequential]`** tasks: implement in order
@@ -168,12 +168,12 @@ After verification passes:
 **If more phases remain:**
 Present options:
 - "Continue to Phase N: \<Phase Name\>"
-- "Stop here" -- progress is saved in `tasks.adoc`
+- "Stop here" -- progress is saved in `tasks.yaml`
 
 **If all phases are complete:**
 1. Verify implementation against spec.yaml: check that all requirements have been addressed
 2. If the project uses TDD, run all tests and confirm they pass
-3. Set `:status: Implemented` in `docs/features/<slug>/tasks.adoc`
+3. Set `:status: Implemented` in `docs/features/<slug>/tasks.yaml`
 4. Detect design divergences (see below)
 5. Update `:last-updated:` to today's date in updated files
 6. Commit task status updates
@@ -247,7 +247,7 @@ When implementing directly from the design without a task list:
    c. Commit any updates
    d. Report to the orchestrator with the divergence report
 
-**Note:** No `tasks.adoc` is created in this flow. Progress is tracked via commits.
+**Note:** No `tasks.yaml` is created in this flow. Progress is tracked via commits.
 
 ## Reference
 

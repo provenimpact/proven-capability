@@ -6,16 +6,16 @@ This file walks through implementing Phase 1 (Foundation) of the shopping-cart f
 
 Given:
 
-* `docs/features/shopping-cart/tasks.adoc` at version `1.0.0` with 3 phases, 9 tasks
+* `docs/features/shopping-cart/tasks.yaml` at version `1.0.0` with 3 phases, 9 tasks
 * `docs/features/shopping-cart/design.adoc` at version `1.0.0` with system design for cart management
 * `docs/features/shopping-cart/data-model.adoc` at version `1.0.0` with entities: Cart, CartItem
 * `docs/features/shopping-cart/spec.yaml` at version `1.0.0` with stories US-001, US-002 and requirements CART-001 through CART-007
-* No tasks are ticked yet -- starting from Phase 1
+* No tasks are done yet -- starting from Phase 1
 * TDD not adopted (no tests ADR)
 
 == Step 1: Read Inputs
 
-Read `docs/features/shopping-cart/tasks.adoc` -- status is `Current`, source-design-version is `1.0.0`. Proceed.
+Read `docs/features/shopping-cart/tasks.yaml` -- status is `Current`, source-design-version is `1.0.0`. Proceed.
 
 Read `docs/features/shopping-cart/design.adoc` -- extract system design (frontend components, CartService, API routes), requirement resolution mappings, and architecture constraint (business logic in service layer).
 
@@ -25,11 +25,11 @@ Read `docs/features/shopping-cart/spec.yaml` -- extract requirement texts and ve
 
 == Step 2: Check for Existing Progress
 
-No tasks are ticked. Start from Phase 1.
+No tasks are done. Start from Phase 1.
 
 == Step 3: Build Phase Todo List (Phase 1: Foundation)
 
-Parse Phase 1 from the feature's tasks.adoc. It contains 1 task:
+Parse Phase 1 from the feature's tasks.yaml. It contains 1 task:
 
 ....
 TodoWrite:
@@ -72,7 +72,7 @@ CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
 * Create `lib/models/cart.ts` with TypeScript types and basic query functions
 * Create `lib/models/cart-item.ts` with TypeScript types
 
-Mark TASK-001 as `completed` in the todo list. Tick `[x]` in `docs/features/shopping-cart/tasks.adoc`.
+Mark TASK-001 as `completed` in the todo list. Set `done: true` on TASK-001 in `docs/features/shopping-cart/tasks.yaml`.
 
 == Step 5: Verify Phase
 
@@ -128,23 +128,26 @@ Phase 2 targets requirements: CART-001, CART-002, CART-003, CART-006, CART-007.
 
 Loop back to Step 3 for Phase 2.
 
-== Updated tasks.adoc After Phase 1
+== Updated tasks.yaml After Phase 1
 
 ....
-== Phase 1: Foundation
+phases:
+  - name: Foundation
+    description: Create database entities and migrations for cart persistence.
+    tasks:
+      - id: TASK-001
+        title: Create Cart and CartItem entities and migrations
+        done: true    # <-- marked done after Phase 1
+        execution: sequential
+        components: [Database, Cart model, CartItem model]
+        stories: [US-001, US-002]
+        requirements: [CART-001, CART-004]
+        description: Create Cart table and CartItem table...
 
-Create database entities and migrations for cart persistence.
-
-* [x] TASK-001: Create Cart and CartItem entities and migrations [sequential]
-+
-Components:: Database, Cart model, CartItem model
-Stories:: US-001, US-002
-Requirements:: CART-001, CART-004
-Description:: Create Cart table and CartItem table...
-
-== Phase 2: Backend
-
-...tasks still unticked...
+  - name: Backend
+    description: Implement the CartService and API route handlers.
+    tasks:
+      # ...tasks still not done...
 ....
 
 == Final State (After All Phases Complete)
@@ -156,7 +159,7 @@ When the last phase is committed:
 2. Set the task list status to `Implemented`:
 +
 ....
-docs/features/shopping-cart/tasks.adoc  -> :status: Implemented
+docs/features/shopping-cart/tasks.yaml  -> status: Implemented
 ....
 
 3. Detect design divergences -- compare what was built against the design. For each divergence, analyze both resolution directions (update design vs. fix code) and report to the orchestrator:

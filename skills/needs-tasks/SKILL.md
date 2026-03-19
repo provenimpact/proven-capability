@@ -1,11 +1,21 @@
 ---
 name: needs-tasks
-description: Create phased implementation task lists for a feature. Use when the proven-needs orchestrator determines that a feature needs a task breakdown. Operates within a single feature package at docs/features/<slug>/. Tasks define the WORK -- discrete coding units organized into sequential phases with parallelism markers and full traceability back to the feature's spec.yaml requirements.
+description: Create phased implementation task lists for a feature in schema-validated YAML format. Use when the proven-needs orchestrator determines that a feature needs a task breakdown. Operates within a single feature package at docs/features/<slug>/. Tasks define the WORK -- discrete coding units organized into sequential phases with parallelism markers and full traceability back to the feature's spec.yaml requirements.
 ---
 
 ## Prerequisites
 
 This skill is invoked by the `proven-needs` orchestrator, which provides the feature context (slug, intent, current state).
+
+## Artifact Format
+
+The task list is a single YAML file at `docs/features/<slug>/tasks.yaml`, validated by a JSON schema.
+
+**Schema:** `skills/needs-tasks/schemas/tasks.schema.json`
+
+**Validation:** `python scripts/validate-tasks.py docs/features/<slug>/tasks.yaml`
+
+The validation script also cross-references against the feature's `spec.yaml` to verify that every requirement is covered by at least one task and that all referenced IDs exist.
 
 ## Observe
 
@@ -15,7 +25,7 @@ Assess the current state of the task list for this feature.
 
 Read `docs/features/<slug>/design.adoc`. Extract `:version:`, `:source-spec-version:`, `:status:`, system design sections, requirement resolution mappings. Also read `data-model.adoc` and `contracts/` if they exist within the feature package.
 
-**If missing:** Note that design is unavailable. Report to the orchestrator. Tasks will be derived directly from spec.yaml requirements (requirement-driven derivation). If proceeding: set `:source-design-version:` to `n/a`.
+**If missing:** Note that design is unavailable. Report to the orchestrator. Tasks will be derived directly from spec.yaml requirements (requirement-driven derivation). If proceeding: set `source_design_version` to `n/a`.
 
 ### 2. Read feature spec
 
@@ -25,9 +35,9 @@ Read `docs/features/<slug>/spec.yaml`. Extract:
 
 ### 3. Read existing task list
 
-If `docs/features/<slug>/tasks.adoc` exists:
-- Read `:version:`, `:status:`, `:source-design-version:`, `:source-spec-version:`
-- Read all phases, tasks, tick states, and metadata
+If `docs/features/<slug>/tasks.yaml` exists:
+- Read `version`, `status`, `source_design_version`, `source_spec_version`
+- Read all phases, tasks, done states, and metadata
 
 ### 4. Read constraints
 
@@ -44,7 +54,7 @@ Return to the orchestrator:
 Feature: <slug>
 Design: {exists: true/false, version: "X.Y.Z", status: "Current/Stale"}
 Spec: {exists: true, version: "X.Y.Z", stories: N, requirements: N}
-Tasks: {exists: true/false, version: "X.Y.Z", status: "Current/Stale/Implemented", progress: "N/M ticked"}
+Tasks: {exists: true/false, version: "X.Y.Z", status: "Current/Stale/Implemented", progress: "N/M done"}
 ```
 
 ## Evaluate
@@ -56,16 +66,16 @@ Given the desired state from the orchestrator, determine what action is needed.
 | Condition | Action |
 |---|---|
 | No task list exists | Create task list |
-| Task list exists, `:status:` is `Implemented` | Previous cycle complete. Create fresh task list (overwrite). |
-| Source versions match, no tasks ticked | Task list appears current. Report to orchestrator. |
-| Source versions match, some tasks ticked | Partial progress. Report to orchestrator. |
-| `:source-design-version:` differs from current design | Task list is stale. Determine whether to recreate or incrementally update. |
+| Task list exists, `status` is `Implemented` | Previous cycle complete. Create fresh task list (overwrite). |
+| Source versions match, no tasks done | Task list appears current. Report to orchestrator. |
+| Source versions match, some tasks done | Partial progress. Report to orchestrator. |
+| `source_design_version` differs from current design | Task list is stale. Determine whether to recreate or incrementally update. |
 
 ### 2. Transitive staleness check
 
-If `:source-design-version:` matches the current design version, trust that the design is current -- the design skill is responsible for tracking its own upstream staleness against `spec.yaml`.
+If `source_design_version` matches the current design version, trust that the design is current -- the design skill is responsible for tracking its own upstream staleness against `spec.yaml`.
 
-If `:source-design-version:` does not match, the task list is stale. Warn the orchestrator and recommend updating the design first (which will cascade any upstream spec changes into the design before tasks are regenerated).
+If `source_design_version` does not match, the task list is stale. Warn the orchestrator and recommend updating the design first (which will cascade any upstream spec changes into the design before tasks are regenerated).
 
 ### 3. Check constraints
 
@@ -107,7 +117,7 @@ When a design document exists, walk through it systematically to identify discre
 
 ### Requirement-driven task derivation (when no design exists)
 
-When `:source-design-version:` is `n/a`, derive tasks directly from spec.yaml requirements:
+When `source_design_version` is `n/a`, derive tasks directly from spec.yaml requirements:
 
 1. Read each story and its requirements
 2. For each story, create one or more tasks. Group related requirements into a single task when tightly coupled; split when independently implementable.
@@ -115,7 +125,7 @@ When `:source-design-version:` is `n/a`, derive tasks directly from spec.yaml re
    - A clear, actionable title
    - Which stories it implements
    - Which requirement IDs it satisfies
-   - `Components::` is omitted since there is no design to reference
+   - `components` is omitted since there is no design to reference
 4. Use story groupings to inform phase organization
 
 ### Organize into phases
@@ -133,8 +143,8 @@ Group tasks into sequential phases based on implementation dependencies.
 | Polish | Error handling, edge cases, notifications | Error responses, validation messages, notification triggers |
 
 Within each phase, mark every task:
-- **`[parallel]`** -- can be implemented concurrently. No dependency on other tasks within the phase.
-- **`[sequential]`** -- must be completed before subsequent sequential tasks in the same phase.
+- **`parallel`** -- can be implemented concurrently. No dependency on other tasks within the phase.
+- **`sequential`** -- must be completed before subsequent sequential tasks in the same phase.
 
 **Guidelines:**
 - A task belongs in the earliest phase where all its dependencies are satisfied
@@ -143,86 +153,76 @@ Within each phase, mark every task:
 
 ### Write task list
 
-Create `docs/features/<slug>/tasks.adoc`:
+Create `docs/features/<slug>/tasks.yaml`:
 
-```asciidoc
-= Implementation Tasks: <Feature Name>
-:version: 1.0.0
-:status: Current
-:source-design-version: <design version>
-:source-spec-version: <spec.yaml version>
-:last-updated: YYYY-MM-DD
-:feature: <slug>
-:toc:
+```yaml
+# yaml-language-server: $schema=../../../skills/needs-tasks/schemas/tasks.schema.json
 
-== Overview
+feature: <slug>
+version: "1.0.0"
+status: Current
+source_design_version: "<design version>"
+source_spec_version: "<spec.yaml version>"
+last_updated: "YYYY-MM-DD"
 
-<Brief summary: what is being implemented, number of phases, total tasks.>
+overview: >-
+  <Brief summary: what is being implemented, number of phases, total tasks.>
 
-== Phase 1: <Phase Name>
-
-<One-sentence phase purpose.>
-
-* [ ] TASK-001: <Task title> [parallel]
-+
-Components:: <design components involved>
-Stories:: <story IDs, e.g., US-001>
-Requirements:: <requirement IDs, e.g., PROD-001, PROD-002>
-Description:: <What to implement and key details>
-
-* [ ] TASK-002: <Task title> [sequential]
-+
-Components:: <design components involved>
-Stories:: <story IDs>
-Requirements:: <requirement IDs>
-Description:: <What to implement and key details>
-
-== Phase 2: <Phase Name>
-
-...
-
-== Traceability
-
-[cols="1,1,1", options="header"]
-|===
-| Story | Requirements | Tasks
-
-| US-001: View Product Catalog | PROD-001, PROD-002 | TASK-001, TASK-005
-| US-002: Search Products | PROD-005, PROD-006 | TASK-002, TASK-006
-|===
+phases:
+  - name: <Phase Name>
+    description: <One-sentence phase purpose.>
+    tasks:
+      - id: TASK-001
+        title: <Task title>
+        execution: parallel
+        components: [<design components involved>]
+        stories: [US-001]
+        requirements: [PREFIX-001, PREFIX-002]
+        description: >-
+          <What to implement and key details>
 ```
 
-**`:status:` values:**
+**`status` values:**
 - `Current` -- task list is valid and aligned with design
 - `Stale` -- design has changed since this task list was created
-- `Implemented` -- all tasks are ticked off
+- `Implemented` -- all tasks are done
 
 **Version rules:**
-- `:version:` uses SemVer, starts at `1.0.0`
-- `:source-design-version:` records which design version was used; `n/a` if design was skipped
-- `:source-spec-version:` records which spec version was used
-- `:last-updated:` set to today's date
+- `version` uses SemVer, starts at `1.0.0`
+- `source_design_version` records which design version was used; `n/a` if design was skipped
+- `source_spec_version` records which spec version was used
+- `last_updated` set to today's date
 
-**Task IDs:** Sequential within the document: TASK-001, TASK-002, etc. IDs are stable -- do not renumber when updating.
+**Task IDs:** Sequential across the entire file: TASK-001, TASK-002, etc. IDs are stable -- do not renumber when updating.
 
-**Ticking off tasks:** When a task is completed, change `[ ]` to `[x]`. When all tasks are ticked, set `:status:` to `Implemented`.
+**Marking tasks done:** When a task is completed, set `done: true`. When all tasks are done, set `status: Implemented`.
 
 **Task file lifecycle:** Tasks guide implementation but are not the source of truth for feature completion -- passing tests (if TDD is adopted) or manual verification against spec.yaml requirements serve that role. Once a feature reaches `Implemented`, the task file may be removed at the team's discretion.
+
+### Validate
+
+Run the validation script to verify the task list:
+
+```
+python scripts/validate-tasks.py docs/features/<slug>/tasks.yaml
+```
+
+Fix any errors before reporting completion.
 
 ## Quality Checklist
 
 Before finalizing, verify:
 - Every requirement ID from spec.yaml appears in at least one task
 - Every story is covered by the aggregate tasks
-- Every design section has corresponding tasks (skip if `:source-design-version:` is `n/a`)
+- Every design section has corresponding tasks (skip if `source_design_version` is `n/a`)
 - No circular dependencies between phases
 - Phase ordering respects actual implementation dependencies
 - Each task is a discrete, implementable coding unit
 - Parallel/sequential markers are correct
-- The traceability section is complete and accurate
 - Source versions are recorded correctly
 - Quality constraints from `docs/constraints.yaml` are addressed (e.g., testing tasks exist if the project uses TDD per ADR decision)
+- The validation script passes: `python scripts/validate-tasks.py docs/features/<slug>/tasks.yaml`
 
 ## Reference
 
-See `references/example.adoc` for a complete example showing how a feature design becomes a phased task list with traceability.
+See `references/example.yaml` for a complete example showing how a feature design becomes a phased task list with traceability.

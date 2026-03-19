@@ -64,7 +64,7 @@ A self-contained unit of work scoped to one feature. Lives in `docs/features/<sl
 docs/features/<slug>/
   spec.yaml            # WHY + WHAT: user stories + EARS requirements (schema-validated)
   design.adoc          # HOW: implementation blueprint
-  tasks.adoc           # WORK: phased implementation breakdown
+  tasks.yaml           # WORK: phased implementation breakdown
 ```
 
 The `spec.yaml` file combines user stories and EARS requirements in one artifact. Each story contains the requirements that resolve it. The file is validated by a JSON schema (`skills/needs-features/schemas/feature-spec.schema.json`) and a consistency checking script (`scripts/validate-specs.py`).
@@ -131,7 +131,7 @@ When this skill is invoked, immediately build the current state model:
 
 1. **`docs/constraints.yaml`** -- read all constraint categories and rules. If missing, note that no constraints are defined. Do not create it automatically -- the user declares constraints intentionally.
 
-2. **`docs/features/`** -- list all feature directories. For each, check which artifacts exist (`spec.yaml`, `design.adoc`, `tasks.adoc`). Features with `:status: Archived` in `spec.yaml` are reported in the summary but skipped during intent classification and staleness checks.
+2. **`docs/features/`** -- list all feature directories. For each, check which artifacts exist (`spec.yaml`, `design.adoc`, `tasks.yaml`). Features with `:status: Archived` in `spec.yaml` are reported in the summary but skipped during intent classification and staleness checks.
 
 3. **`docs/adrs/`** -- read the index, note how many ADRs exist and their statuses. Pay particular attention to any ADR about TDD/automated testing -- this determines whether `needs-tests` is available.
 
@@ -365,7 +365,7 @@ Options:
 
 Check if any existing artifacts involved in the transition are stale:
 - spec.yaml updated but design not refreshed? (`:source-spec-version:` mismatch)
-- Design updated but tasks not refreshed? (`:source-design-version:` mismatch)
+- Design updated but tasks not refreshed? (`source_design_version` mismatch in tasks.yaml)
 - Feature implemented but architecture not updated?
 
 Report staleness and recommend resolution before proceeding.
@@ -407,7 +407,7 @@ Transition plan to achieve "Users can reset password via SMS":
   Post-implementation: needs-architecture (update after implementation)
 
   Risk: HIGH (new feature behavior, code changes)
-  Estimated artifacts affected: spec.yaml, design.adoc, tasks.adoc, code
+  Estimated artifacts affected: spec.yaml, design.adoc, tasks.yaml, code
 
   Proceed?
 ```
@@ -618,7 +618,7 @@ A constraint violation blocks a transition unless the user explicitly chooses to
 :capabilities-invoked: needs-features, needs-design, needs-tasks, needs-implementation
 :constraints-checked: Security (pass), Architecture (pass), Quality (pass)
 :result: Achieved
-:artifacts-modified: docs/features/user-authentication/spec.yaml (v1.1.0), docs/features/user-authentication/design.adoc (v2.0.0), docs/features/user-authentication/tasks.adoc (v1.0.0), source code
+:artifacts-modified: docs/features/user-authentication/spec.yaml (v1.1.0), docs/features/user-authentication/design.adoc (v2.0.0), docs/features/user-authentication/tasks.yaml (v1.0.0), source code
 
 == TRANSITION-002
 ...
@@ -650,7 +650,7 @@ A feature's status is derived from which artifacts exist and their states:
 stateDiagram-v2
     [*] --> Specified : spec.yaml created
     Specified --> Designed : design.adoc created (Current)
-    Designed --> Planned : tasks.adoc created (Current)
+    Designed --> Planned : tasks.yaml created (Current)
     Planned --> Implemented : implementation complete
 
     Specified --> Archived : archived
@@ -664,7 +664,7 @@ stateDiagram-v2
 |---|---|
 | spec.yaml only | `Specified` |
 | + design.adoc (status: Current) | `Designed` |
-| + tasks.adoc (status: Current) | `Planned` |
+| + tasks.yaml (status: Current) | `Planned` |
 | Implementation complete, all requirements verified | `Implemented` |
 | `:status: Archived` in spec.yaml | `Archived` |
 
@@ -672,7 +672,7 @@ stateDiagram-v2
 
 `spec.yaml` uses SemVer independently. Downstream artifacts track their upstream:
 - `design.adoc` tracks `:source-spec-version:`
-- `tasks.adoc` tracks `:source-design-version:` and `:source-spec-version:`
+- `tasks.yaml` tracks `source_design_version` and `source_spec_version`
 
 ### Format and dates
 

@@ -119,7 +119,7 @@ flowchart LR
         NF["needs-features"] --> SPEC[("spec.yaml")]
         NADR["needs-adr"] --> ADRS[("docs/adrs/")]
         ND["needs-design"] --> DESIGN[("design.adoc<br/>data-model.adoc<br/>contracts/")]
-        NT["needs-tasks"] --> TASKS[("tasks.adoc")]
+        NT["needs-tasks"] --> TASKS[("tasks.yaml")]
         NTST["needs-tests"] --> TESTCODE[("test files")]
         NI["needs-implementation"] --> CODE[("source code")]
     end
@@ -139,9 +139,9 @@ flowchart LR
 |---|---|---|
 | `needs-features` | `constraints.yaml` | `spec.yaml` |
 | `needs-design` | `spec.yaml`, ADRs, `constraints.yaml`, `architecture.adoc` | `design.adoc`, `data-model.adoc`, `contracts/` |
-| `needs-tasks` | `design.adoc` (or `spec.yaml` as fallback), `constraints.yaml` | `tasks.adoc` |
+| `needs-tasks` | `design.adoc` (or `spec.yaml` as fallback), `constraints.yaml` | `tasks.yaml` |
 | `needs-tests` | `spec.yaml`, `design.adoc`, `constraints.yaml` | test files |
-| `needs-implementation` | `tasks.adoc` (or `design.adoc` as fallback), `spec.yaml`, `constraints.yaml`, ADRs | source code |
+| `needs-implementation` | `tasks.yaml` (or `design.adoc` as fallback), `spec.yaml`, `constraints.yaml`, ADRs | source code |
 | `needs-adr` | existing ADRs | `docs/adrs/*.yaml`, `index.yaml` |
 | `needs-architecture` | all feature designs, ADRs, `docs/constraints.yaml`, codebase | `docs/architecture.adoc` |
 | `needs-dependencies` | package manifests, `docs/constraints.yaml` | package manifests, lockfiles |
@@ -191,7 +191,7 @@ Self-contained units of work at `docs/features/<slug>/`:
 docs/features/shopping-cart/
   spec.yaml            # WHY + WHAT: user stories + EARS requirements
   design.adoc          # HOW: implementation blueprint
-  tasks.adoc           # WORK: phased task breakdown
+  tasks.yaml           # WORK: phased task breakdown
 ```
 
 The `spec.yaml` file combines user stories and EARS requirements in a single schema-validated artifact:
@@ -290,7 +290,7 @@ flowchart TD
 | Constraints | `docs/constraints.yaml` | Stable, changes rarely |
 | Feature spec | `docs/features/<slug>/spec.yaml` | Living, schema-validated |
 | Design | `docs/features/<slug>/design.adoc` | Living, synced with spec.yaml |
-| Tasks | `docs/features/<slug>/tasks.adoc` | Ephemeral -- disposable once implementation verified |
+| Tasks | `docs/features/<slug>/tasks.yaml` | Ephemeral -- disposable once implementation verified |
 | Tests | project test directories | Living (opt-in, requires TDD ADR) |
 | ADRs | `docs/adrs/NNNN-title.yaml` | Permanent, append-only |
 | Architecture | `docs/architecture.adoc` | Living, reflects current system |
@@ -303,7 +303,7 @@ flowchart TD
 flowchart LR
     S["spec.yaml<br/><i>version: SemVer</i>"]
     D["design.adoc<br/>:source-spec-version:"]
-    T["tasks.adoc<br/>:source-design-version:<br/>:source-spec-version:"]
+    T["tasks.yaml<br/>source_design_version<br/>source_spec_version"]
 
     S -->|tracked by| D
     D -->|tracked by| T
@@ -317,16 +317,18 @@ When `spec.yaml` changes, the design may become stale. When the design changes, 
 
 ## Validation
 
-All structured artifacts (feature specs, constraints, ADRs) are machine-validated with JSON schemas and consistency scripts:
+All structured artifacts are machine-validated with JSON schemas and consistency scripts:
 
 | Artifact | Schema | Validation Script |
 |---|---|---|
 | Feature specs | `skills/needs-features/schemas/feature-spec.schema.json` | `scripts/validate-specs.py` |
+| Tasks | `skills/needs-tasks/schemas/tasks.schema.json` | `scripts/validate-tasks.py` |
 | Constraints | `skills/proven-needs/schemas/constraints.schema.json` | `scripts/validate-constraints.py` |
 | ADRs | `skills/needs-adr/schemas/adr.schema.json` + `adr-index.schema.json` | `scripts/validate-adrs.py` |
 
 ```
 python scripts/validate-specs.py docs/features/*/spec.yaml
+python scripts/validate-tasks.py docs/features/*/tasks.yaml
 python scripts/validate-constraints.py docs/constraints.yaml
 python scripts/validate-adrs.py docs/adrs/
 ```

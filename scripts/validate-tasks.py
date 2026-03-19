@@ -1,0 +1,263 @@
+#!/usr/bin/env python3
+"""
+Validates implementation task YAML files against:
+1. JSON Schema (structure and types)
+2. Task ID uniqueness (no duplicates across phases)
+3. Sequential task IDs (TASK-001, TASK-002, ... without gaps)
+4. Requirement coverage (cross-reference against spec.yaml if provided)
+5. Story coverage (every story referenced exists in spec.yaml if provided)
+
+Usage:
+  python scripts/validate-tasks.py docs/features/shopping-cart/tasks.yaml
+  python scripts/validate-tasks.py docs/features/*/tasks.yaml
+  python scripts/validate-tasks.py --all
+  python scripts/validate-tasks.py docs/features/shopping-cart/tasks.yaml --spec docs/features/shopping-cart/spec.yaml
+
+Dependencies:
+  pip install pyyaml jsonschema
+
+Exit codes:
+  0 = all valid
+  1 = validation errors found
+  2 = usage error
+"""
+
+import json
+import re
+import sys
+from pathlib import Path
+
+try:
+    import yaml
+    from jsonschema import validate, ValidationError
+except ImportError:
+    print(
+        "Missing dependencies. Install them with:\n  pip install pyyaml jsonschema",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+SCHEMA_PATH = (
+    SCRIPT_DIR.parent / "skills" / "needs-tasks" / "schemas" / "tasks.schema.json"
+)
+SPEC_SCHEMA_PATH = (
+    SCRIPT_DIR.parent
+    / "skills"
+    / "needs-features"
+    / "schemas"
+    / "feature-spec.schema.json"
+)
+
+if not SCHEMA_PATH.exists():
+    print(f"Schema not found at: {SCHEMA_PATH}", file=sys.stderr)
+    sys.exit(2)
+
+schema = json.loads(SCHEMA_PATH.read_text())
+
+
+def find_task_files(args: list[str]) -> tuple[list[Path], Path | None]:
+    """Returns (task_files, explicit_spec_path)."""
+    spec_path = None
+    filtered_args = []
+
+    i = 0
+    while i < len(args):
+        if args[i] == "--spec" and i + 1 < len(args):
+            spec_path = Path(args[i + 1])
+            i += 2
+        else:
+            filtered_args.append(args[i])
+            i += 1
+
+    if "--all" in filtered_args:
+        features_dir = Path("docs/features")
+        if not features_dir.exists():
+            print("No docs/features/ directory found.", file=sys.stderr)
+            sys.exit(2)
+        files = sorted(features_dir.glob("*/tasks.yaml"))
+        if not files:
+            print("No tasks.yaml files found under docs/features/.", file=sys.stderr)
+            sys.exit(2)
+        return files, spec_path
+
+    non_flag_args = [a for a in filtered_args if not a.startswith("--")]
+    if not non_flag_args:
+        print(
+            "Usage:\n"
+            "  python scripts/validate-tasks.py docs/features/*/tasks.yaml\n"
+            "  python scripts/validate-tasks.py --all\n"
+            "  python scripts/validate-tasks.py <tasks.yaml> --spec <spec.yaml>",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    return [Path(a) for a in non_flag_args], spec_path
+
+
+def load_spec_ids(
+    task_file: Path, explicit_spec: Path | None
+) -> tuple[set[str], set[str]] | None:
+    """Try to load requirement IDs and story IDs from the feature's spec.yaml."""
+    if explicit_spec:
+        spec_path = explicit_spec
+    else:
+        # Infer: tasks.yaml is at docs/features/<slug>/tasks.yaml, spec is sibling
+        spec_path = task_file.parent / "spec.yaml"
+
+    if not spec_path.exists():
+        return None
+
+    try:
+        spec = yaml.safe_load(spec_path.read_text())
+    except Exception:
+        return None
+
+    req_ids = set()
+    story_ids = set()
+    for story in spec.get("stories", []):
+        story_ids.add(story["id"])
+        for req in story.get("requirements", []):
+            req_ids.add(req["id"])
+
+    return req_ids, story_ids
+
+
+def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
+    errors = []
+    label = str(file_path)
+
+    # Parse YAML
+    try:
+        doc = yaml.safe_load(file_path.read_text())
+    except yaml.YAMLError as e:
+        errors.append(f"{label}: YAML parse error: {e}")
+        return errors
+
+    # JSON Schema validation
+    try:
+        validate(instance=doc, schema=schema)
+    except ValidationError as e:
+        path = "/".join(str(p) for p in e.absolute_path) or "(root)"
+        errors.append(f"{label}: schema: /{path} {e.message}")
+        return errors
+
+    phases = doc["phases"]
+
+    # Collect all tasks
+    all_tasks = []
+    for phase in phases:
+        for task in phase["tasks"]:
+            all_tasks.append(task)
+
+    # Task ID uniqueness
+    task_ids = set()
+    for task in all_tasks:
+        if task["id"] in task_ids:
+            errors.append(f"{label}: duplicate task ID: {task['id']}")
+        task_ids.add(task["id"])
+
+    # Sequential task IDs
+    task_nums = [int(t["id"].replace("TASK-", "")) for t in all_tasks]
+    for i, num in enumerate(task_nums):
+        if num != i + 1:
+            errors.append(
+                f"{label}: task ID gap or out of order: "
+                f"expected TASK-{i + 1:03d} but found {all_tasks[i]['id']}"
+            )
+            break
+
+    # Ascending order check
+    for i in range(1, len(task_nums)):
+        if task_nums[i] <= task_nums[i - 1]:
+            errors.append(
+                f"{label}: task IDs not in ascending order: "
+                f"{all_tasks[i - 1]['id']} followed by {all_tasks[i]['id']}"
+            )
+            break
+
+    # Status consistency
+    if doc["status"] == "Implemented":
+        not_done = [t["id"] for t in all_tasks if not t.get("done", False)]
+        if not_done:
+            errors.append(
+                f"{label}: status is 'Implemented' but {len(not_done)} task(s) "
+                f"not marked done: {', '.join(not_done)}"
+            )
+
+    # Cross-reference against spec.yaml
+    spec_data = load_spec_ids(file_path, explicit_spec)
+    if spec_data:
+        spec_req_ids, spec_story_ids = spec_data
+
+        # All requirement IDs referenced by tasks should exist in spec
+        task_req_ids = set()
+        for task in all_tasks:
+            task_req_ids.update(task.get("requirements", []))
+
+        unknown_reqs = task_req_ids - spec_req_ids
+        if unknown_reqs:
+            errors.append(
+                f"{label}: tasks reference requirement IDs not in spec.yaml: "
+                f"{', '.join(sorted(unknown_reqs))}"
+            )
+
+        # All requirement IDs from spec should be covered by at least one task
+        uncovered_reqs = spec_req_ids - task_req_ids
+        if uncovered_reqs:
+            errors.append(
+                f"{label}: spec.yaml requirements not covered by any task: "
+                f"{', '.join(sorted(uncovered_reqs))}"
+            )
+
+        # All story IDs referenced by tasks should exist in spec
+        task_story_ids = set()
+        for task in all_tasks:
+            task_story_ids.update(task.get("stories", []))
+
+        unknown_stories = task_story_ids - spec_story_ids
+        if unknown_stories:
+            errors.append(
+                f"{label}: tasks reference story IDs not in spec.yaml: "
+                f"{', '.join(sorted(unknown_stories))}"
+            )
+
+    return errors
+
+
+def main():
+    args = sys.argv[1:]
+    files, explicit_spec = find_task_files(args)
+
+    total_errors = 0
+
+    for file_path in files:
+        if not file_path.exists():
+            print(f"File not found: {file_path}", file=sys.stderr)
+            total_errors += 1
+            continue
+
+        errors = validate_file(file_path, explicit_spec)
+
+        if not errors:
+            doc = yaml.safe_load(file_path.read_text())
+            task_count = sum(len(p["tasks"]) for p in doc["phases"])
+            done_count = sum(
+                1 for p in doc["phases"] for t in p["tasks"] if t.get("done", False)
+            )
+            print(
+                f"PASS  {file_path} ({done_count}/{task_count} done, {len(doc['phases'])} phases)"
+            )
+        else:
+            print(f"FAIL  {file_path}")
+            for err in errors:
+                print(f"  - {err}")
+            total_errors += len(errors)
+
+    status = "All valid." if total_errors == 0 else f"{total_errors} error(s) found."
+    print(f"\n{len(files)} file(s) checked. {status}")
+    sys.exit(0 if total_errors == 0 else 1)
+
+
+if __name__ == "__main__":
+    main()
