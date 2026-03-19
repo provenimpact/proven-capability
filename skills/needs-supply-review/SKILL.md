@@ -100,8 +100,8 @@ For each dependency on the review list, fetch data from available sources. Not e
 
 | Source | Data Points | Method |
 |---|---|---|
-| Package registry (npm, PyPI, crates.io, etc.) | Version, license, description, publish dates, maintainer count, weekly downloads | Web fetch to registry API |
-| GitHub / GitLab repository | Stars, forks, open issues, contributors, last commit, recent commit frequency, SECURITY.md presence, branch protection | Web fetch to repo page or API |
+| Package registry (npm, PyPI, crates.io, etc.) | Version, license, description, publish dates, **registry maintainers** (users with publish rights, including usernames), weekly downloads | Web fetch to registry API |
+| GitHub / GitLab repository | Stars, forks, open issues, **repository contributors** (users who've committed code), last commit, recent commit frequency, SECURITY.md presence, branch protection | Web fetch to repo page or API |
 | [deps.dev](https://deps.dev/) | OpenSSF Scorecard (overall score + individual check scores/details), known vulnerabilities (via advisoryKeys), dependency count, dependent count, SLSA provenance, stars, forks | Web fetch (version endpoint for advisories/license/provenance; project endpoint for scorecard/stars/forks) |
 | [bestpractices.dev](https://www.bestpractices.dev/) | OpenSSF Best Practices badge status and level | Web fetch |
 
@@ -111,12 +111,12 @@ Use these specific endpoints rather than scraping web pages -- they return struc
 
 | Source | Endpoint Pattern | Notes |
 |---|---|---|
-| npm registry | `https://registry.npmjs.org/<package>/<version>` | Use the single-version endpoint to avoid huge responses. For download counts: `https://api.npmjs.org/downloads/point/last-week/<package>` |
-| PyPI | `https://pypi.org/pypi/<package>/json` | Includes version history, license, maintainers |
+| npm registry | `https://registry.npmjs.org/<package>/<version>` | Use the single-version endpoint to avoid huge responses. Returns `maintainers[]` array with `name` and `email` for each user with npm publish rights. For download counts: `https://api.npmjs.org/downloads/point/last-week/<package>` |
+| PyPI | `https://pypi.org/pypi/<package>/json` | Includes version history, license, maintainers. The `info.author` and `info.maintainer` fields list individuals; `info.project_urls` links to the source repo |
 | deps.dev version API | `https://api.deps.dev/v3alpha/systems/<system>/packages/<package>/versions/<version>` | Systems: `npm`, `pypi`, `cargo`, `go`, `maven`. Returns license, advisories, provenance/attestations, and `relatedProjects` with the source repo project ID. Does **not** return scorecard data -- use the project endpoint for that. Also useful: `https://api.deps.dev/v3alpha/advisories/<advisory-id>` for full advisory details |
 | deps.dev project API | `https://api.deps.dev/v3alpha/projects/<url-encoded-project-id>` | Returns the full OpenSSF Scorecard with individual check scores. The project ID is the repo path (e.g., `github.com/colinhacks/zod`) URL-encoded as `github.com%2Fcolinhacks%2Fzod`. Get the project ID from the version endpoint's `relatedProjects[].projectKey.id` field, or construct it from the source repo URL. See "Extracting OpenSSF Scorecard data" below for details. |
 | bestpractices.dev | `https://www.bestpractices.dev/en/projects.json?q=<package-name>` | Returns JSON array. Filter results carefully -- the search is fuzzy and may return unrelated projects. Match on repository URL, not just name. |
-| GitHub API | `https://api.github.com/repos/<owner>/<repo>` | Rate-limited but no auth required for basic metadata. For security policy: check if `SECURITY.md` exists at repo root. |
+| GitHub API | `https://api.github.com/repos/<owner>/<repo>` | Rate-limited but no auth required for basic metadata. For security policy: check if `SECURITY.md` exists at repo root. For **contributor count**: use `https://api.github.com/repos/<owner>/<repo>/contributors?per_page=1&anon=true` and read the `Link` header's `last` page number, or fetch the first page and note the total. Contributors are distinct from registry maintainers -- see "Maintainers vs Contributors" below. |
 | OSV | OSV's query API requires POST requests, which may not be available via web fetch. Use deps.dev's `advisoryKeys` field as the primary vulnerability source instead. If deps.dev data is unavailable, check `https://osv.dev/vulnerability/<id>` for known advisory IDs. |
 
 **Fetching strategy:**
@@ -169,6 +169,22 @@ The OpenSSF Scorecard is one of the most valuable automated signals for supply c
 
    Checks with score `-1` mean "not applicable" or "couldn't determine" -- treat these as `Unavailable` in the report, not as failures.
 
+**Maintainers vs Contributors:**
+
+These are fundamentally different roles with different security implications. The report must show both, clearly labeled with their source:
+
+- **Registry maintainers** (from npm `maintainers[]`, PyPI maintainer metadata, crates.io owners, etc.) are users with **publish rights** -- they can push new package versions. This is the security-critical group. A compromised maintainer account means an attacker can publish malicious code to every downstream consumer. A single-maintainer package has an inherent bus factor and account-takeover risk.
+
+- **Repository contributors** (from GitHub/GitLab API) are users who've **committed code** to the source repo. This is the community health signal. A package with many contributors signals broader review, diverse perspectives, and a healthier open source project. But contributors don't necessarily have publish rights -- they can't unilaterally push a malicious release.
+
+Why both matter for supply chain evaluation:
+- **1 registry maintainer, 200 contributors**: The project has strong community health but a single point of failure for publishing. Account takeover or maintainer compromise would affect all consumers. The large contributor pool doesn't mitigate this because contributors don't control releases.
+- **5 registry maintainers from 3 organizations, 200 contributors**: Strong on both fronts -- publishing resilience and community health.
+- **1 registry maintainer, 2 contributors**: Small project with concentrated control. May be fine for a niche utility, but risky for a security-critical dependency.
+- **5 registry maintainers from 1 organization**: Better bus factor than 1, but if the organization has a policy dispute or goes defunct, all maintainers may disappear at once.
+
+When the registry doesn't expose maintainer data (some ecosystems don't), note the gap and rely on the source repo's contributor data as a proxy, but flag that publish-rights information is unavailable.
+
 ### 3. Map data to OpenSSF evaluation categories
 
 The OpenSSF guide organizes evaluation into 7 categories. Each category contains rules that are either **automatable** (data can be fetched and assessed programmatically) or **manual** (requires human judgment). The skill fills in automatable items and marks manual items as `Pending Review`.
@@ -188,7 +204,7 @@ The OpenSSF guide organizes evaluation into 7 categories. Each category contains
 |---|---|---|---|
 | Activity Level | Yes | Repository | Commits within last 12 months |
 | Communication | Yes | Registry + repo | Release notes or announcements within last 12 months |
-| Maintainer Diversity | Yes | Registry + repo | More than 1 maintainer, ideally from different organizations |
+| Maintainer Diversity | Yes | Registry + repo | More than 1 **registry maintainer** (publish rights), ideally from different organizations. Also assess **contributor** count and diversity from the source repo. See "Maintainers vs Contributors" below. |
 | Release Recency | Yes | Registry | Last release within 12 months |
 | Version Stability | Yes | Registry | Version >= 1.0.0, no alpha/beta/rc tags in the installed version |
 
@@ -380,10 +396,10 @@ Status:: Pending Review
 === Authenticity
 // [auto] Package identity verification
 Status:: <Pass | Warn | Fail>
-Registry name:: <package name>
-Source repository:: <URL>
-Created:: <date>
-Downloads (weekly):: <count>
+Registry name:: <package name> (source: <registry URL>)
+Source repository:: <URL> (source: registry metadata + verified against deps.dev relatedProjects)
+Created:: <date> (source: registry)
+Downloads (weekly):: <count> (source: registry download API)
 Similar names:: <list any suspiciously similar more-popular packages, or "none found">
 
 == Maintenance & Sustainability
@@ -391,31 +407,43 @@ Similar names:: <list any suspiciously similar more-popular packages, or "none f
 === Activity Level
 // [auto] Recent development activity
 Status:: <Pass | Warn | Fail>
-Last commit:: <date>
-Commits (12 months):: <count>
+Last commit:: <date> (source: GitHub API)
+Commits (12 months):: <count> (source: GitHub API or Scorecard `Maintained` check reason)
+Scorecard Maintained:: <score>/10 -- <reason> (source: deps.dev project endpoint)
 
 === Communication
 // [auto] Project communication and releases
 Status:: <Pass | Warn | Fail>
-Last release:: <version> (<date>)
-Release notes:: <Present | Missing>
+Last release:: <version> (<date>) (source: registry)
+Release notes:: <Present | Missing> (source: GitHub releases / changelog)
 
 === Maintainer Diversity
-// [auto] Bus factor assessment
+// [auto] Bus factor and community health assessment
 Status:: <Pass | Warn | Fail>
-Maintainers:: <count>
+
+Registry maintainers (publish rights)::
+// From package registry (npm maintainers[], PyPI, crates.io owners, etc.)
+Count:: <N>
+Users:: <list usernames>
 Organizations:: <list or "unknown">
+Source:: <registry name and URL>
+
+Repository contributors (code authors)::
+// From source repo (GitHub/GitLab API)
+Count:: <N>
+Top contributors:: <list top 3-5 by commit count if available>
+Source:: <repo URL>
 
 === Release Recency
 // [auto] How recently was the last release?
 Status:: <Pass | Warn | Fail>
-Last release date:: <date>
+Last release date:: <date> (source: registry)
 Days since release:: <N>
 
 === Version Stability
 // [auto] Is the version string stable?
 Status:: <Pass | Warn | Fail>
-Current version:: <version>
+Current version:: <version> (source: registry)
 Pre-release:: <Yes (alpha/beta/rc) | No>
 
 == Security Practices
@@ -506,16 +534,16 @@ Status:: Pending Review
 === License
 // [auto] License verification
 Status:: <Pass | Warn | Fail>
-License:: <SPDX identifier>
+License:: <SPDX identifier> (source: registry + deps.dev + Scorecard `License` check)
 OSI approved:: <Yes | No>
 Constraint compliant:: <Yes | No | No constraint defined>
 
 === Adoption Level
 // [auto] Usage indicators
 Status:: <Pass | Warn | Fail>
-Weekly downloads:: <count>
-Dependents:: <count or "unknown">
-GitHub stars:: <count>
+Weekly downloads:: <count> (source: registry download API)
+Dependents:: <count or "unknown"> (source: deps.dev)
+GitHub stars:: <count> (source: GitHub API or deps.dev project endpoint)
 
 === Name Verification
 // [auto] Typosquatting check
@@ -660,7 +688,8 @@ Status:: Pending Review
   "known_vulnerabilities": <count>,
   "license": "<SPDX>",
   "license_compliant": <true|false|null>,
-  "maintainers": <count>,
+  "registry_maintainers": <count>,
+  "repo_contributors": <count>,
   "last_commit_days_ago": <N>,
   "last_release_days_ago": <N>,
   "manual_checks_pending": <N>,

@@ -46,21 +46,22 @@ Constraint implications:
 
 === Data Fetched
 
-**npm registry (https://www.npmjs.com/package/stripe):**
+**npm registry (https://registry.npmjs.org/stripe/14.12.0):**
 
 * Version: 14.12.0
 * License: MIT
-* Maintainers: 5
+* Registry maintainers (publish rights): 5 (stripe-admin, raynos, brandur-stripe, ob-stripe, jar-stripe)
+* Author: Stripe (support@stripe.com)
 * Weekly downloads: ~1,800,000
 * First published: 2011-10-21
 * Last publish: 2024-11-15
 
-**GitHub (https://github.com/stripe/stripe-node):**
+**GitHub (https://api.github.com/repos/stripe/stripe-node):**
 
 * Stars: ~3,800
 * Forks: ~580
 * Open issues: ~45
-* Contributors: 180+
+* Repository contributors (code authors): 180+
 * Last commit: 3 days ago
 * Commit frequency: 15-20 per month
 * SECURITY.md: Present
@@ -138,10 +139,10 @@ Status:: Pending Review
 
 === Authenticity
 Status:: Pass
-Registry name:: stripe
-Source repository:: https://github.com/stripe/stripe-node
-Created:: 2011-10-21 (13+ years)
-Downloads (weekly):: ~1,800,000
+Registry name:: stripe (source: npm registry)
+Source repository:: https://github.com/stripe/stripe-node (source: npm registry + verified against deps.dev relatedProjects)
+Created:: 2011-10-21 (13+ years) (source: npm registry)
+Downloads (weekly):: ~1,800,000 (source: npm downloads API)
 Similar names:: none found (stripe-node is a redirect to this package)
 
 == Maintenance & Sustainability
@@ -158,11 +159,23 @@ Release notes:: Present (detailed changelogs on GitHub)
 
 === Maintainer Diversity
 Status:: Warn
-Maintainers:: 5
+
+Registry maintainers (publish rights)::
+Count:: 5
+Users:: stripe-admin, raynos, brandur-stripe, ob-stripe, jar-stripe
 Organizations:: Stripe, Inc. (single organization)
-// Note: Single-org is flagged as Warn per the evaluation criteria.
-// Mitigated by Stripe being a large, well-funded company for whom
-// this SDK is business-critical.
+Source:: npm registry (https://www.npmjs.com/package/stripe)
+
+Repository contributors (code authors)::
+Count:: 180+
+Top contributors:: stripe-openapi (bot), brandur-stripe, ob-stripe, remi-stripe, anniel-stripe
+Source:: GitHub (https://github.com/stripe/stripe-node)
+
+// Note: 5 registry maintainers is healthy for publishing resilience, but
+// all are from Stripe, Inc. (single organization). Flagged as Warn per the
+// evaluation criteria. Mitigated by Stripe being a large, well-funded
+// company for whom this SDK is business-critical. The 180+ contributors
+// indicate strong community health and code review diversity.
 
 === Release Recency
 Status:: Pass
@@ -468,7 +481,8 @@ No overrides applied.
   "known_vulnerabilities": 0,
   "license": "MIT",
   "license_compliant": true,
-  "maintainers": 5,
+  "registry_maintainers": 5,
+  "repo_contributors": 180,
   "last_commit_days_ago": 3,
   "last_release_days_ago": 100,
   "manual_checks_pending": 12,

@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Evaluate whether we should use the `zod` package for input validation in our TypeScript project",
-      "expected_output": "A supply review report for zod at docs/supply-reviews/zod.adoc following the OpenSSF 7-category structure, with auto-populated data from npm registry, deps.dev version and project endpoints, and a risk score with verdict",
+      "expected_output": "A supply review report for zod at docs/supply-reviews/zod.adoc following the OpenSSF 7-category structure, with auto-populated data from npm registry, GitHub, and deps.dev version and project endpoints, and a risk score with verdict",
       "files": [],
       "expectations": [
         "Report is written to docs/supply-reviews/zod.adoc",
@@ -13,32 +13,41 @@
         "Scorecard data is fetched from the deps.dev project endpoint, not just the version endpoint",
         "Report includes a Risk Assessment score breakdown table with weighted category scores",
         "Report includes a CI Data JSON block with scorecard_overall and scorecard_checks fields",
-        "All 7 OpenSSF evaluation categories are addressed in the report"
+        "All 7 OpenSSF evaluation categories are addressed in the report",
+        "Maintainer Diversity section separately lists registry maintainers (from npm) and repository contributors (from GitHub) with counts and usernames",
+        "Registry maintainers are labeled as having publish rights, sourced from npm",
+        "Repository contributors are labeled as code authors, sourced from GitHub",
+        "Data points throughout the report indicate their source (registry, GitHub API, deps.dev, etc.)"
       ]
     },
     {
       "id": 2,
       "prompt": "Run a supply chain review of all our project dependencies",
-      "expected_output": "Individual supply review .adoc files for each dependency in docs/supply-reviews/ plus a _index.adoc summary with risk distribution, verdicts, and CI data block. Each individual report should include scorecard data from deps.dev.",
+      "expected_output": "Individual supply review .adoc files for each dependency in docs/supply-reviews/ plus a _index.adoc summary with risk distribution, verdicts, and CI data block. Each individual report should include scorecard data and differentiate maintainers from contributors.",
       "files": [],
       "expectations": [
         "Each individual review file contains an OpenSSF Scorecard section with individual check scores",
         "The _index.adoc summary file is created with risk distribution and verdict distribution",
         "CI Data blocks in individual reports include scorecard_checks object",
-        "Deps.dev project endpoint is used to fetch scorecard data for each dependency"
+        "Deps.dev project endpoint is used to fetch scorecard data for each dependency",
+        "Each report's Maintainer Diversity section distinguishes registry maintainers from repo contributors",
+        "CI Data JSON uses registry_maintainers and repo_contributors fields instead of a single maintainers count"
       ]
     },
     {
       "id": 3,
       "prompt": "I want to add `stripe` as a payment processing dependency for our e-commerce checkout flow",
-      "expected_output": "A supply review for stripe recognizing this as both a dependency addition and a supply chain review trigger, with full scorecard data from deps.dev",
+      "expected_output": "A supply review for stripe recognizing this as both a dependency addition and a supply chain review trigger, with full scorecard data from deps.dev and clear maintainer/contributor distinction",
       "files": [],
       "expectations": [
         "Report is written to docs/supply-reviews/stripe.adoc",
         "Report contains OpenSSF Scorecard section with individual check scores fetched from deps.dev project endpoint",
         "Scorecard checks like Maintained, Code-Review, CI-Tests are listed with scores and reasons",
         "Key scorecard concerns are highlighted (e.g. checks scoring 0)",
-        "Report includes CI Data JSON with scorecard_overall and scorecard_checks"
+        "Report includes CI Data JSON with scorecard_overall and scorecard_checks",
+        "Maintainer Diversity section lists npm registry maintainers (users with publish rights) separately from GitHub contributors (code authors)",
+        "Registry maintainer usernames are listed from npm maintainers[] array",
+        "Repository contributor count is sourced from GitHub API"
       ]
     },
     {
@@ -51,7 +60,8 @@
         "Fresh OpenSSF Scorecard data is fetched from deps.dev project endpoint",
         "Updated report includes individual scorecard check scores",
         "Previous manual entries are preserved in the updated report",
-        "Report notes what changed since the last review"
+        "Report notes what changed since the last review",
+        "Maintainer Diversity section shows current registry maintainers and repo contributors with sources"
       ]
     },
     {
@@ -64,7 +74,9 @@
         "Verdict is Review Required or Reject",
         "OpenSSF Scorecard data is fetched from deps.dev project endpoint and included in the report",
         "Individual scorecard checks are listed even though the package is flagged as risky",
-        "Risk level is High or Critical"
+        "Risk level is High or Critical",
+        "Maintainer Diversity section identifies who has npm publish rights (registry maintainers) -- this is especially relevant for a historically compromised package",
+        "Report notes whether the maintainer who inserted malicious code still has publish rights"
       ]
     },
     {
@@ -77,7 +89,8 @@
         "OpenSSF Scorecard data is fetched from deps.dev project endpoint",
         "Individual scorecard checks are listed with scores",
         "Constraint compliance section addresses the licensing constraint",
-        "CI Data JSON includes scorecard_overall and scorecard_checks"
+        "CI Data JSON includes scorecard_overall and scorecard_checks",
+        "Maintainer Diversity section distinguishes registry maintainers from repo contributors"
       ]
     },
     {
@@ -90,7 +103,8 @@
         "Fresh OpenSSF Scorecard is fetched from deps.dev project endpoint for the current codebase state",
         "Individual scorecard checks are listed in the updated report",
         "Previous manual entries are preserved as reference",
-        "Report highlights changes that might affect the risk assessment"
+        "Report highlights changes that might affect the risk assessment",
+        "Maintainer Diversity section shows whether registry maintainers changed between versions"
       ]
     },
     {
@@ -108,7 +122,7 @@
     {
       "id": 9,
       "prompt": "Review the express package for our Node.js API server. I want to see what the OpenSSF Scorecard says about it in detail.",
-      "expected_output": "A supply review for express with particular emphasis on the full OpenSSF Scorecard breakdown, fetched from the deps.dev project endpoint with all individual checks listed.",
+      "expected_output": "A supply review for express with particular emphasis on the full OpenSSF Scorecard breakdown, fetched from the deps.dev project endpoint with all individual checks listed, and clear sourcing of data from npm registry vs GitHub.",
       "files": [],
       "expectations": [
         "Report is written to docs/supply-reviews/express.adoc",
@@ -116,7 +130,25 @@
         "OpenSSF Scorecard section lists all available individual checks with scores and reasons",
         "Scorecard checks are mapped to relevant report sections (e.g. Maintained -> Activity Level, CI-Tests -> Testing Practices, Branch-Protection -> Repository Security)",
         "Key concerns section highlights any checks scoring 0 or with warnings",
-        "CI Data JSON includes scorecard_checks object with individual check scores"
+        "CI Data JSON includes scorecard_checks object with individual check scores",
+        "Maintainer Diversity section shows npm registry maintainers (publish rights) separately from GitHub contributors",
+        "Data points throughout the report are annotated with their source"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Evaluate the chalk package. I'm worried about bus factor -- who actually controls this package?",
+      "expected_output": "A supply review for chalk with particular emphasis on the Maintainer Diversity analysis, clearly distinguishing who has npm publish rights (registry maintainers) from who has contributed code (GitHub contributors), and assessing the bus factor risk from both angles.",
+      "files": [],
+      "expectations": [
+        "Report is written to docs/supply-reviews/chalk.adoc",
+        "Maintainer Diversity section lists npm registry maintainers by username with publish rights clearly labeled",
+        "Maintainer Diversity section lists GitHub repository contributors with count and top contributors",
+        "Each data source (npm registry, GitHub API) is explicitly cited",
+        "Bus factor assessment considers both registry maintainer count and contributor diversity",
+        "Report addresses the user's concern about who controls the package by distinguishing publishing control from code contribution",
+        "CI Data JSON includes registry_maintainers and repo_contributors as separate fields",
+        "Risk assessment weights the single-maintainer risk appropriately if applicable"
       ]
     }
   ]
