@@ -1,6 +1,6 @@
 ---
 name: needs-supply-review
-description: Evaluate open source dependencies against the OpenSSF Concise Guide for Evaluating Open Source Software. Use when the proven-needs orchestrator determines that a dependency needs a supply chain review -- either because a new dependency is being added, an existing review is stale, or the user explicitly asks to evaluate a package. Operates at the project level. Produces structured AsciiDoc reports in docs/supply-reviews/ with risk scores and accept/review/reject verdicts. Supports both single-dependency deep-dives and full-project audits.
+description: Evaluate open source dependencies against the OpenSSF Concise Guide for Evaluating Open Source Software. Use when a user asks to evaluate, review, or vet a dependency or package -- e.g. "is lodash safe to use?", "review zod", "should we add this package?", "audit our dependencies", or "check our supply chain". Also triggered by the proven-needs orchestrator when a new dependency is added or an existing review is stale. Produces structured AsciiDoc reports in docs/supply-reviews/ with risk scores and accept/review/reject verdicts. Supports both single-dependency deep-dives and full-project audits.
 ---
 
 ## Purpose
@@ -9,15 +9,15 @@ Every dependency you add is code you didn't write running in your system. A comp
 
 ## Prerequisites
 
-This skill is invoked by the `proven-needs` orchestrator, which provides the desired state and current state context. It can also be invoked directly when a user asks to evaluate a specific dependency.
+This skill can be used standalone or invoked by the `proven-needs` orchestrator. When used standalone, the user directly asks to evaluate a dependency (e.g. "review lodash", "is this package safe?"). When invoked by the orchestrator, it receives desired state and current state context as part of a larger workflow.
 
 **Invocation modes:**
 
 | Mode | Trigger | Scope |
 |---|---|---|
-| **Single review** | User names a specific package, or orchestrator flags a new dependency | One package |
+| **Single review** | User names a specific package (or orchestrator flags a new dependency) | One package |
 | **Full audit** | User asks for a project-wide supply chain review | All direct dependencies |
-| **Staleness check** | Orchestrator detects reviews older than the staleness threshold | Stale-reviewed packages |
+| **Staleness check** | User asks to check for stale reviews (or orchestrator detects reviews older than the staleness threshold) | Stale-reviewed packages |
 
 ## Observe
 
@@ -25,7 +25,7 @@ Assess the current state of supply chain reviews for the project's dependencies.
 
 ### 1. Determine review mode
 
-Identify whether this is a single-dependency review, a full audit, or a staleness re-review based on the orchestrator's context or the user's request.
+Identify whether this is a single-dependency review, a full audit, or a staleness re-review based on the user's request (or the orchestrator's context, if invoked from the proven-needs workflow).
 
 ### 2. Detect dependencies
 
@@ -64,7 +64,7 @@ If `docs/constraints.adoc` does not exist, note that no project constraints are 
 
 ### 5. Report observation
 
-Return to the orchestrator:
+Report observation summary (to the user, or to the orchestrator if invoked from the proven-needs workflow):
 
 ```
 Supply reviews:
@@ -81,7 +81,7 @@ Dependencies needing review:
 
 ## Evaluate
 
-Given the desired state from the orchestrator, determine which dependencies need review and what data to gather.
+Determine which dependencies need review and what data to gather, based on the user's request (or the orchestrator's desired state, if invoked from the proven-needs workflow).
 
 ### 1. Determine review list
 
@@ -266,7 +266,7 @@ When evaluating such packages:
 
 ### 6. Report evaluation
 
-Return to the orchestrator:
+Report evaluation summary:
 
 ```
 Action: review / re-review / audit / none
@@ -707,7 +707,7 @@ After all reports are written:
 
 ### 5. Report results
 
-Return to the orchestrator:
+Report results summary:
 
 ```
 Reviews completed: [{package, version, risk-level, verdict, status: new/updated}]
