@@ -222,7 +222,7 @@ stories:
 - Each story has the user story narrative (As a / I want / So that)
 - Requirements use EARS syntax and are directly under the story they resolve
 - Every requirement has a unique ID, EARS type, and black-box verification
-- The schema is enforced by `scripts/validate-specs.py`
+- The schema is enforced by `skills/needs-features/scripts/validate-specs.py`
 
 Each feature is fully independent -- it can be specified, designed, and implemented without reading other features.
 
@@ -321,16 +321,16 @@ All structured artifacts are machine-validated with JSON schemas and consistency
 
 | Artifact | Schema | Validation Script |
 |---|---|---|
-| Feature specs | `skills/needs-features/schemas/feature-spec.schema.json` | `scripts/validate-specs.py` |
-| Tasks | `skills/needs-tasks/schemas/tasks.schema.json` | `scripts/validate-tasks.py` |
-| Constraints | `skills/proven-needs/schemas/constraints.schema.json` | `scripts/validate-constraints.py` |
-| ADRs | `skills/needs-adr/schemas/adr.schema.json` + `adr-index.schema.json` | `scripts/validate-adrs.py` |
+| Feature specs | `skills/needs-features/schemas/feature-spec.schema.json` | `skills/needs-features/scripts/validate-specs.py` |
+| Tasks | `skills/needs-tasks/schemas/tasks.schema.json` | `skills/needs-tasks/scripts/validate-tasks.py` |
+| Constraints | `skills/proven-needs/schemas/constraints.schema.json` | `skills/proven-needs/scripts/validate-constraints.py` |
+| ADRs | `skills/needs-adr/schemas/adr.schema.json` + `adr-index.schema.json` | `skills/needs-adr/scripts/validate-adrs.py` |
 
 ```
-python scripts/validate-specs.py docs/features/*/spec.yaml
-python scripts/validate-tasks.py docs/features/*/tasks.yaml
-python scripts/validate-constraints.py docs/constraints.yaml
-python scripts/validate-adrs.py docs/adrs/
+python skills/needs-features/scripts/validate-specs.py docs/features/*/spec.yaml
+python skills/needs-tasks/scripts/validate-tasks.py docs/features/*/tasks.yaml
+python skills/proven-needs/scripts/validate-constraints.py docs/constraints.yaml
+python skills/needs-adr/scripts/validate-adrs.py docs/adrs/
 ```
 
 ## Risk Classification

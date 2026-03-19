@@ -9,8 +9,8 @@ Validates ADR YAML files against:
 6. Filename-ID consistency (file 0001-*.yaml must contain ADR-0001)
 
 Usage:
-  python scripts/validate-adrs.py docs/adrs/
-  python scripts/validate-adrs.py             # defaults to docs/adrs/
+  python skills/needs-adr/scripts/validate-adrs.py docs/adrs/
+  python skills/needs-adr/scripts/validate-adrs.py             # defaults to docs/adrs/
 
 Dependencies:
   pip install pyyaml jsonschema
@@ -37,12 +37,8 @@ except ImportError:
     sys.exit(2)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ADR_SCHEMA_PATH = (
-    SCRIPT_DIR.parent / "skills" / "needs-adr" / "schemas" / "adr.schema.json"
-)
-INDEX_SCHEMA_PATH = (
-    SCRIPT_DIR.parent / "skills" / "needs-adr" / "schemas" / "adr-index.schema.json"
-)
+ADR_SCHEMA_PATH = SCRIPT_DIR.parent / "schemas" / "adr.schema.json"
+INDEX_SCHEMA_PATH = SCRIPT_DIR.parent / "schemas" / "adr-index.schema.json"
 
 for p in (ADR_SCHEMA_PATH, INDEX_SCHEMA_PATH):
     if not p.exists():
@@ -79,9 +75,8 @@ def main():
         sys.exit(2)
 
     errors = []
-    adr_docs: dict[str, dict] = {}  # id -> {"doc": ..., "filename": ...}
+    adr_docs: dict[str, dict] = {}
 
-    # Discover files
     yaml_files = sorted(f for f in adrs_dir.iterdir() if f.suffix == ".yaml")
     index_file = next((f for f in yaml_files if f.name == "index.yaml"), None)
     adr_files = [
@@ -94,7 +89,6 @@ def main():
         print(f"No ADR files found in {adrs_dir}", file=sys.stderr)
         sys.exit(2)
 
-    # Validate individual ADR files
     for adr_file in adr_files:
         filename = adr_file.name
 
@@ -111,10 +105,8 @@ def main():
             errors.append(f"{filename}: schema: /{path} {e.message}")
             continue
 
-        # Schema version compatibility
         errors.extend(check_schema_version(doc, filename, ADR_SCHEMA_VERSION))
 
-        # Filename-ID consistency
         file_num_match = re.match(r"^(\d{4})-", filename)
         id_num_match = re.match(r"^ADR-(\d{4})$", doc["id"])
         if file_num_match and id_num_match and file_num_match[1] != id_num_match[1]:
@@ -122,7 +114,6 @@ def main():
                 f"{filename}: file number {file_num_match[1]} does not match ADR ID {doc['id']}"
             )
 
-        # Duplicate check
         if doc["id"] in adr_docs:
             errors.append(
                 f"{filename}: duplicate ADR ID {doc['id']} "
@@ -133,7 +124,6 @@ def main():
 
         print(f"PASS  {filename} ({doc['id']}: {doc['status']})")
 
-    # Sequential numbering
     sorted_ids = sorted(adr_docs.keys())
     for i, adr_id in enumerate(sorted_ids):
         expected = f"ADR-{i + 1:04d}"
@@ -141,7 +131,6 @@ def main():
             errors.append(f"ADR numbering gap: expected {expected} but found {adr_id}")
             break
 
-    # Supersession integrity
     for adr_id, entry in adr_docs.items():
         doc = entry["doc"]
         filename = entry["filename"]
@@ -161,7 +150,6 @@ def main():
                 f'{filename}: has superseded_by field but status is "{doc["status"]}" (should be "Superseded")'
             )
 
-    # Validate index
     if index_file:
         try:
             index_doc = yaml.safe_load(index_file.read_text())
@@ -178,12 +166,10 @@ def main():
             else:
                 print("PASS  index.yaml")
 
-                # Schema version compatibility
                 errors.extend(
                     check_schema_version(index_doc, "index.yaml", INDEX_SCHEMA_VERSION)
                 )
 
-                # Cross-reference: every ADR file should be in the index
                 index_ids = {d["id"] for d in index_doc["decisions"]}
                 for adr_id, entry in adr_docs.items():
                     if adr_id not in index_ids:
@@ -191,7 +177,6 @@ def main():
                             f"index.yaml: missing entry for {adr_id} (file: {entry['filename']})"
                         )
 
-                # Cross-reference: every index entry should have a file
                 for decision in index_doc["decisions"]:
                     if decision["id"] not in adr_docs:
                         errors.append(
@@ -217,7 +202,6 @@ def main():
     else:
         errors.append(f"index.yaml not found in {adrs_dir}")
 
-    # Summary
     total_files = len(adr_files) + (1 if index_file else 0)
     status = "All valid." if not errors else f"{len(errors)} error(s) found."
     print(f"\n{total_files} file(s) checked. {status}")

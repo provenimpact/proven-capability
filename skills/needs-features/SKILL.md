@@ -15,7 +15,7 @@ The feature specification is a single YAML file at `docs/features/<slug>/spec.ya
 
 **Schema:** `skills/needs-features/schemas/feature-spec.schema.json`
 
-**Validation:** `python scripts/validate-specs.py docs/features/<slug>/spec.yaml`
+**Validation:** `python skills/needs-features/scripts/validate-specs.py docs/features/<slug>/spec.yaml`
 
 The YAML file has this top-level structure:
 
@@ -213,7 +213,7 @@ Create `docs/features/<slug>/spec.yaml` following the schema. Include the YAML L
 Run the validation script to verify the spec:
 
 ```
-python scripts/validate-specs.py docs/features/<slug>/spec.yaml
+python skills/needs-features/scripts/validate-specs.py docs/features/<slug>/spec.yaml
 ```
 
 Fix any errors before reporting completion.
@@ -347,7 +347,7 @@ Before finalizing, verify:
 - No duplicate IDs
 - Error and edge case scenarios are covered using unwanted-behavior type
 - Cross-cutting requirements have been flagged as potential constraints
-- The validation script passes: `python scripts/validate-specs.py docs/features/<slug>/spec.yaml`
+- The validation script passes: `python skills/needs-features/scripts/validate-specs.py docs/features/<slug>/spec.yaml`
 
 ## Reference
 

@@ -13,7 +13,7 @@ The task list is a single YAML file at `docs/features/<slug>/tasks.yaml`, valida
 
 **Schema:** `skills/needs-tasks/schemas/tasks.schema.json`
 
-**Validation:** `python scripts/validate-tasks.py docs/features/<slug>/tasks.yaml`
+**Validation:** `python skills/needs-tasks/scripts/validate-tasks.py docs/features/<slug>/tasks.yaml`
 
 The validation script also cross-references against the feature's `spec.yaml` to verify that every requirement is covered by at least one task and that all referenced IDs exist.
 
@@ -205,7 +205,7 @@ phases:
 Run the validation script to verify the task list:
 
 ```
-python scripts/validate-tasks.py docs/features/<slug>/tasks.yaml
+python skills/needs-tasks/scripts/validate-tasks.py docs/features/<slug>/tasks.yaml
 ```
 
 Fix any errors before reporting completion.
@@ -222,7 +222,7 @@ Before finalizing, verify:
 - Parallel/sequential markers are correct
 - Source versions are recorded correctly
 - Quality constraints from `docs/constraints.yaml` are addressed (e.g., testing tasks exist if the project uses TDD per ADR decision)
-- The validation script passes: `python scripts/validate-tasks.py docs/features/<slug>/tasks.yaml`
+- The validation script passes: `python skills/needs-tasks/scripts/validate-tasks.py docs/features/<slug>/tasks.yaml`
 
 ## Reference
 

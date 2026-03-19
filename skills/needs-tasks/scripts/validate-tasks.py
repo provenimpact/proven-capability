@@ -8,10 +8,10 @@ Validates implementation task YAML files against:
 5. Story coverage (every story referenced exists in spec.yaml if provided)
 
 Usage:
-  python scripts/validate-tasks.py docs/features/shopping-cart/tasks.yaml
-  python scripts/validate-tasks.py docs/features/*/tasks.yaml
-  python scripts/validate-tasks.py --all
-  python scripts/validate-tasks.py docs/features/shopping-cart/tasks.yaml --spec docs/features/shopping-cart/spec.yaml
+  python skills/needs-tasks/scripts/validate-tasks.py docs/features/shopping-cart/tasks.yaml
+  python skills/needs-tasks/scripts/validate-tasks.py docs/features/*/tasks.yaml
+  python skills/needs-tasks/scripts/validate-tasks.py --all
+  python skills/needs-tasks/scripts/validate-tasks.py docs/features/shopping-cart/tasks.yaml --spec docs/features/shopping-cart/spec.yaml
 
 Dependencies:
   pip install pyyaml jsonschema
@@ -38,16 +38,7 @@ except ImportError:
     sys.exit(2)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-SCHEMA_PATH = (
-    SCRIPT_DIR.parent / "skills" / "needs-tasks" / "schemas" / "tasks.schema.json"
-)
-SPEC_SCHEMA_PATH = (
-    SCRIPT_DIR.parent
-    / "skills"
-    / "needs-features"
-    / "schemas"
-    / "feature-spec.schema.json"
-)
+SCHEMA_PATH = SCRIPT_DIR.parent / "schemas" / "tasks.schema.json"
 
 if not SCHEMA_PATH.exists():
     print(f"Schema not found at: {SCHEMA_PATH}", file=sys.stderr)
@@ -101,9 +92,9 @@ def find_task_files(args: list[str]) -> tuple[list[Path], Path | None]:
     if not non_flag_args:
         print(
             "Usage:\n"
-            "  python scripts/validate-tasks.py docs/features/*/tasks.yaml\n"
-            "  python scripts/validate-tasks.py --all\n"
-            "  python scripts/validate-tasks.py <tasks.yaml> --spec <spec.yaml>",
+            "  python skills/needs-tasks/scripts/validate-tasks.py docs/features/*/tasks.yaml\n"
+            "  python skills/needs-tasks/scripts/validate-tasks.py --all\n"
+            "  python skills/needs-tasks/scripts/validate-tasks.py <tasks.yaml> --spec <spec.yaml>",
             file=sys.stderr,
         )
         sys.exit(2)
@@ -118,7 +109,6 @@ def load_spec_ids(
     if explicit_spec:
         spec_path = explicit_spec
     else:
-        # Infer: tasks.yaml is at docs/features/<slug>/tasks.yaml, spec is sibling
         spec_path = task_file.parent / "spec.yaml"
 
     if not spec_path.exists():
@@ -143,14 +133,12 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
     errors = []
     label = str(file_path)
 
-    # Parse YAML
     try:
         doc = yaml.safe_load(file_path.read_text())
     except yaml.YAMLError as e:
         errors.append(f"{label}: YAML parse error: {e}")
         return errors
 
-    # JSON Schema validation
     try:
         validate(instance=doc, schema=schema)
     except ValidationError as e:
@@ -158,12 +146,10 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
         errors.append(f"{label}: schema: /{path} {e.message}")
         return errors
 
-    # Schema version compatibility
     errors.extend(check_schema_version(doc, label))
 
     phases = doc["phases"]
 
-    # Collect all tasks
     all_tasks = []
     for phase in phases:
         for task in phase["tasks"]:
@@ -186,7 +172,6 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
             )
             break
 
-    # Ascending order check
     for i in range(1, len(task_nums)):
         if task_nums[i] <= task_nums[i - 1]:
             errors.append(
@@ -209,7 +194,6 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
     if spec_data:
         spec_req_ids, spec_story_ids = spec_data
 
-        # All requirement IDs referenced by tasks should exist in spec
         task_req_ids = set()
         for task in all_tasks:
             task_req_ids.update(task.get("requirements", []))
@@ -221,7 +205,6 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
                 f"{', '.join(sorted(unknown_reqs))}"
             )
 
-        # All requirement IDs from spec should be covered by at least one task
         uncovered_reqs = spec_req_ids - task_req_ids
         if uncovered_reqs:
             errors.append(
@@ -229,7 +212,6 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
                 f"{', '.join(sorted(uncovered_reqs))}"
             )
 
-        # All story IDs referenced by tasks should exist in spec
         task_story_ids = set()
         for task in all_tasks:
             task_story_ids.update(task.get("stories", []))

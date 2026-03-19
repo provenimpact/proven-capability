@@ -7,8 +7,8 @@ Validates project constraints YAML file against:
 4. Category name uniqueness
 
 Usage:
-  python scripts/validate-constraints.py docs/constraints.yaml
-  python scripts/validate-constraints.py              # defaults to docs/constraints.yaml
+  python skills/proven-needs/scripts/validate-constraints.py docs/constraints.yaml
+  python skills/proven-needs/scripts/validate-constraints.py   # defaults to docs/constraints.yaml
 
 Dependencies:
   pip install pyyaml jsonschema
@@ -34,13 +34,7 @@ except ImportError:
     sys.exit(2)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-SCHEMA_PATH = (
-    SCRIPT_DIR.parent
-    / "skills"
-    / "proven-needs"
-    / "schemas"
-    / "constraints.schema.json"
-)
+SCHEMA_PATH = SCRIPT_DIR.parent / "schemas" / "constraints.schema.json"
 
 if not SCHEMA_PATH.exists():
     print(f"Schema not found at: {SCHEMA_PATH}", file=sys.stderr)
@@ -79,14 +73,12 @@ def main():
 
     errors = []
 
-    # Parse YAML
     try:
         doc = yaml.safe_load(file_path.read_text())
     except yaml.YAMLError as e:
         print(f"YAML parse error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Schema validation
     try:
         validate(instance=doc, schema=schema)
     except ValidationError as e:
@@ -98,17 +90,14 @@ def main():
         print(f"\n{len(errors)} error(s) found.")
         sys.exit(1)
 
-    # Schema version compatibility
     errors.extend(check_schema_version(doc, str(file_path)))
 
-    # Category name uniqueness
     category_names = set()
     for cat in doc["categories"]:
         if cat["name"] in category_names:
             errors.append(f'duplicate category name: "{cat["name"]}"')
         category_names.add(cat["name"])
 
-    # Constraint ID uniqueness and sequential check
     all_ids = []
     for cat in doc["categories"]:
         for c in cat["constraints"]:
@@ -122,7 +111,6 @@ def main():
             )
         id_set.add(entry["id"])
 
-    # Sequential numbering (C-001, C-002, ...)
     nums = [int(e["id"].replace("C-", "")) for e in all_ids]
     for i, num in enumerate(nums):
         if num != i + 1:

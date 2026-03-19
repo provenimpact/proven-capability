@@ -9,9 +9,9 @@ Validates feature specification YAML files against:
 6. EARS pattern compliance (requirement text matches declared type)
 
 Usage:
-  python scripts/validate-specs.py docs/features/*/spec.yaml
-  python scripts/validate-specs.py docs/features/shopping-cart/spec.yaml
-  python scripts/validate-specs.py --all
+  python skills/needs-features/scripts/validate-specs.py docs/features/*/spec.yaml
+  python skills/needs-features/scripts/validate-specs.py docs/features/shopping-cart/spec.yaml
+  python skills/needs-features/scripts/validate-specs.py --all
 
 Dependencies:
   pip install pyyaml jsonschema
@@ -38,13 +38,7 @@ except ImportError:
     sys.exit(2)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-SCHEMA_PATH = (
-    SCRIPT_DIR.parent
-    / "skills"
-    / "needs-features"
-    / "schemas"
-    / "feature-spec.schema.json"
-)
+SCHEMA_PATH = SCRIPT_DIR.parent / "schemas" / "feature-spec.schema.json"
 
 if not SCHEMA_PATH.exists():
     print(f"Schema not found at: {SCHEMA_PATH}", file=sys.stderr)
@@ -84,8 +78,8 @@ def find_spec_files(args: list[str]) -> list[Path]:
     if not args:
         print(
             "Usage:\n"
-            "  python scripts/validate-specs.py docs/features/*/spec.yaml\n"
-            "  python scripts/validate-specs.py --all",
+            "  python skills/needs-features/scripts/validate-specs.py docs/features/*/spec.yaml\n"
+            "  python skills/needs-features/scripts/validate-specs.py --all",
             file=sys.stderr,
         )
         sys.exit(2)
