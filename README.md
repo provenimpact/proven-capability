@@ -222,7 +222,7 @@ stories:
 - Each story has the user story narrative (As a / I want / So that)
 - Requirements use EARS syntax and are directly under the story they resolve
 - Every requirement has a unique ID, EARS type, and black-box verification
-- The schema is enforced by `scripts/validate-specs.js`
+- The schema is enforced by `scripts/validate-specs.py`
 
 Each feature is fully independent -- it can be specified, designed, and implemented without reading other features.
 
@@ -321,14 +321,14 @@ All structured artifacts (feature specs, constraints, ADRs) are machine-validate
 
 | Artifact | Schema | Validation Script |
 |---|---|---|
-| Feature specs | `skills/needs-features/schemas/feature-spec.schema.json` | `scripts/validate-specs.js` |
-| Constraints | `skills/proven-needs/schemas/constraints.schema.json` | `scripts/validate-constraints.js` |
-| ADRs | `skills/needs-adr/schemas/adr.schema.json` + `adr-index.schema.json` | `scripts/validate-adrs.js` |
+| Feature specs | `skills/needs-features/schemas/feature-spec.schema.json` | `scripts/validate-specs.py` |
+| Constraints | `skills/proven-needs/schemas/constraints.schema.json` | `scripts/validate-constraints.py` |
+| ADRs | `skills/needs-adr/schemas/adr.schema.json` + `adr-index.schema.json` | `scripts/validate-adrs.py` |
 
 ```
-node scripts/validate-specs.js docs/features/*/spec.yaml
-node scripts/validate-constraints.js docs/constraints.yaml
-node scripts/validate-adrs.js docs/adrs/
+python scripts/validate-specs.py docs/features/*/spec.yaml
+python scripts/validate-constraints.py docs/constraints.yaml
+python scripts/validate-adrs.py docs/adrs/
 ```
 
 ## Risk Classification

@@ -67,7 +67,7 @@ docs/features/<slug>/
   tasks.adoc           # WORK: phased implementation breakdown
 ```
 
-The `spec.yaml` file combines user stories and EARS requirements in one artifact. Each story contains the requirements that resolve it. The file is validated by a JSON schema (`skills/needs-features/schemas/feature-spec.schema.json`) and a consistency checking script (`scripts/validate-specs.js`).
+The `spec.yaml` file combines user stories and EARS requirements in one artifact. Each story contains the requirements that resolve it. The file is validated by a JSON schema (`skills/needs-features/schemas/feature-spec.schema.json`) and a consistency checking script (`scripts/validate-specs.py`).
 
 Each feature package is fully independent -- it can be specified, designed, and implemented without reading other feature packages. Feature designs reference project-wide ADRs and architecture but never other feature designs.
 
@@ -497,7 +497,7 @@ After all capabilities in the transition have executed:
 2. Compare against the original desired state
 3. Verify all constraints still hold
 4. Run verification commands (build, test, lint) if code was changed
-5. Run `node scripts/validate-specs.js` on any modified spec.yaml files
+5. Run `python scripts/validate-specs.py` on any modified spec.yaml files
 
 **If desired state achieved:**
 - Update the existing `In Progress` entry in `docs/state-log.adoc`: set `:result: Achieved`, fill in `:capabilities-invoked:`, `:constraints-checked:`, and `:artifacts-modified:`
@@ -573,7 +573,7 @@ categories:
         text: API P95 response time must remain below 200ms.
 ```
 
-**Validation:** `node scripts/validate-constraints.js docs/constraints.yaml`
+**Validation:** `python scripts/validate-constraints.py docs/constraints.yaml`
 
 Each constraint has a unique ID (C-001, C-002, ...) for traceability. Constraint IDs are sequential across the entire file, not within categories.
 

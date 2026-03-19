@@ -66,7 +66,7 @@ Adjust grouping?
 
 User confirms the grouping.
 
-**Pass 2:** For each confirmed feature, invoke `needs-features` with the final slug to create `spec.yaml` with proper feature-scoped IDs. Run `node scripts/validate-specs.js` on each spec. Remove temporary `_drafts` directory.
+**Pass 2:** For each confirmed feature, invoke `needs-features` with the final slug to create `spec.yaml` with proper feature-scoped IDs. Run `python scripts/validate-specs.py` on each spec. Remove temporary `_drafts` directory.
 
 === Step 4: Evaluate Feasibility
 
@@ -262,7 +262,7 @@ Detected as constraint because:
 === Execute
 
 1. Add to `docs/constraints.yaml` under Security category with next available ID
-2. Bump `docs/constraints.yaml` version (MINOR). Run `node scripts/validate-constraints.js`
+2. Bump `docs/constraints.yaml` version (MINOR). Run `python scripts/validate-constraints.py`
 3. Check existing codebase: current API endpoints do NOT have rate limiting
 4. Report constraint violation to user:
 +

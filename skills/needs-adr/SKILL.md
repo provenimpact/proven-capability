@@ -15,7 +15,7 @@ Each ADR is a YAML file at `docs/adrs/NNNN-<kebab-case-title>.yaml`, validated b
 
 **Index Schema:** `skills/needs-adr/schemas/adr-index.schema.json`
 
-**Validation:** `node scripts/validate-adrs.js docs/adrs/`
+**Validation:** `python scripts/validate-adrs.py docs/adrs/`
 
 ## Observe
 
@@ -170,7 +170,7 @@ decisions:
 Run the validation script to verify all ADR files and the index:
 
 ```
-node scripts/validate-adrs.js docs/adrs/
+python scripts/validate-adrs.py docs/adrs/
 ```
 
 Fix any errors before reporting completion.
@@ -200,7 +200,7 @@ Before finalizing, verify:
 - Consequences list both easier and harder impacts
 - Alternatives are documented with clear rejection reasons
 - Index is up to date and consistent with individual files
-- The validation script passes: `node scripts/validate-adrs.js docs/adrs/`
+- The validation script passes: `python scripts/validate-adrs.py docs/adrs/`
 
 ## Reference
 
