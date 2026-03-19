@@ -73,6 +73,7 @@ flowchart LR
         ADR["needs-adr"]
         ARCH["needs-architecture"]
         DEPS["needs-dependencies"]
+        SUPPLY["needs-supply-review"]
         SEC["needs-security"]
         COMP["needs-compliance"]
     end
@@ -82,6 +83,7 @@ flowchart LR
 
     DESIGN -.->|tech decisions| ADR
     SEC -.->|delegates fixes| DEPS
+    DEPS -.->|new dep detected| SUPPLY
     IMPL -.->|divergences| INTENT
     INTENT -.->|update design| DESIGN
     INTENT -.->|fix code| IMPL
@@ -102,6 +104,7 @@ flowchart LR
 - `needs-implementation` prefers tasks but can work scenario-by-scenario from design alone. Gherkin scenarios are the acceptance gate -- all must pass.
 - `needs-design` can trigger `needs-adr` creation for technology decisions (lateral invocation)
 - `needs-security` delegates dependency vulnerability fixes to `needs-dependencies`
+- `needs-dependencies` flags new dependencies for `needs-supply-review` evaluation
 - After implementation, divergences between design and code are reported to the orchestrator. The user decides per-divergence whether to update the design or fix the code.
 
 Independent features can be processed concurrently.
@@ -127,6 +130,7 @@ flowchart LR
     subgraph project ["Project-wide"]
         NARCH["needs-architecture"] --> ARCH[("architecture.adoc")]
         NDEPS["needs-dependencies"] --> DEPS[("package manifests<br/>lockfiles")]
+        NSUPPLY["needs-supply-review"] --> REVIEWS[("docs/supply-reviews/<br/>*.adoc")]
         NSEC["needs-security"] --> CODE2[("source code")]
         NCOMP["needs-compliance"] --> DEPS2[("package manifests")]
     end
@@ -159,6 +163,7 @@ flowchart RL
     subgraph project ["Project-wide"]
         NARCH["needs-architecture"]
         NDEPS["needs-dependencies"]
+        NSUPPLY["needs-supply-review"]
         NSEC["needs-security"]
         NCOMP["needs-compliance"]
     end
@@ -179,6 +184,7 @@ flowchart RL
     ADRS -.->|reads| NARCH
     CODE -.->|reads| NARCH
     DEPS -->|reads| NDEPS
+    DEPS -->|reads| NSUPPLY
     CODE -->|reads| NSEC
     DEPS -.->|reads| NSEC
     DEPS -->|reads| NCOMP
@@ -197,6 +203,7 @@ flowchart RL
 | `needs-adr` | existing ADRs | `docs/adrs/*.adoc`, `index.adoc` |
 | `needs-architecture` | all feature designs, ADRs, `docs/constraints.adoc`, codebase | `docs/architecture.adoc` |
 | `needs-dependencies` | package manifests, `docs/constraints.adoc` | package manifests, lockfiles |
+| `needs-supply-review` | package manifests, `docs/supply-reviews/`, `docs/constraints.adoc`, external sources (deps.dev, registries, GitHub) | `docs/supply-reviews/*.adoc`, `docs/supply-reviews/_index.adoc` |
 | `needs-security` | codebase, dependencies, config, `docs/constraints.adoc` | source code, config |
 | `needs-compliance` | dependencies, `docs/constraints.adoc` | dependencies, `docs/constraints.adoc` |
 
@@ -279,6 +286,7 @@ Append-only audit trail at `docs/state-log.adoc` recording every transition: wha
 | ADRs | `needs-adr` | Record technology decisions |
 | Architecture | `needs-architecture` | Document current system architecture |
 | Dependencies | `needs-dependencies` | Manage and update dependency graph |
+| Supply Review | `needs-supply-review` | Evaluate OSS dependencies against OpenSSF criteria |
 | Security | `needs-security` | Assess and remediate security posture |
 | Compliance | `needs-compliance` | Verify license and policy compliance |
 
@@ -316,6 +324,7 @@ flowchart TD
 | Tasks | `docs/features/<slug>/tasks.adoc` | Ephemeral -- disposable once scenarios verify implementation |
 | Step definitions | `docs/features/<slug>/steps/` | Living, synced with .feature files |
 | ADRs | `docs/adrs/NNNN-title.adoc` | Permanent, append-only |
+| Supply Reviews | `docs/supply-reviews/<package>.adoc` | Living, refreshed on staleness threshold (default 180 days) or version drift |
 | Architecture | `docs/architecture.adoc` | Living, reflects current system |
 | State Log | `docs/state-log.adoc` | Append-only audit trail |
 | Code | project source | Living -- the actual system |
@@ -410,6 +419,12 @@ docs/adrs/
 ├── 0001-use-typescript.adoc
 ├── 0002-use-postgresql.adoc
 └── 0003-use-stripe.adoc
+
+docs/supply-reviews/
+├── _index.adoc              # Audit summary (after full audit)
+├── stripe.adoc              # Per-dependency review
+├── next.adoc
+└── react.adoc
 
 docs/architecture.adoc
 docs/constraints.adoc

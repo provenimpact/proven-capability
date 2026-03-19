@@ -117,6 +117,7 @@ These operate at the project level:
 | ADRs | `needs-adr` | Record technology decisions |
 | Architecture | `needs-architecture` | Document current system architecture |
 | Dependencies | `needs-dependencies` | Manage and update dependency graph |
+| Supply Review | `needs-supply-review` | Evaluate OSS dependencies against OpenSSF criteria |
 | Security | `needs-security` | Assess and remediate security posture |
 | Compliance | `needs-compliance` | Verify license and policy compliance |
 
@@ -184,6 +185,7 @@ Classify the desired state into one or more intent types:
 | **Constraint declaration** | Universal quantifiers, system-as-subject, applies to features that don't exist yet | "All API endpoints must enforce rate limiting" |
 | **Artifact maintenance** | References existing artifacts, sync/update language | "Design is in sync with current .feature files" |
 | **Dependency maintenance** | References packages, versions, vulnerabilities | "No dependencies have known vulnerabilities" |
+| **Supply chain review** | Evaluate dependency, add new package, supply chain, is this package safe | "Evaluate whether we should use zod" |
 | **Architecture evolution** | References system structure, technology changes | "Authentication uses OAuth2 instead of sessions" |
 | **Quality improvement** | References tests, coverage, code quality | "All API endpoints have integration tests" |
 | **Documentation** | References docs, architecture document | "Architecture doc reflects current system" |
@@ -196,6 +198,7 @@ flowchart TD
     SIGNALS -->|"Universal quantifiers,<br/>system-as-subject"| CONST["Constraint declaration"]
     SIGNALS -->|"References artifacts,<br/>sync/update language"| ART["Artifact maintenance"]
     SIGNALS -->|"References packages,<br/>vulnerabilities"| DEP["Dependency maintenance"]
+    SIGNALS -->|"Evaluate dependency,<br/>add new package"| SUPPLY["Supply chain review"]
     SIGNALS -->|"System structure,<br/>technology changes"| ARCH["Architecture evolution"]
     SIGNALS -->|"Tests, coverage,<br/>code quality"| QUAL["Quality improvement"]
     SIGNALS -->|"References docs,<br/>architecture document"| DOC["Documentation"]
@@ -672,6 +675,7 @@ Every capability checks relevant constraints during its Evaluate phase:
 - `needs-tasks`: checks quality constraints (testing tasks exist if coverage constraints apply)
 - `needs-implementation`: checks quality, performance, architecture constraints
 - `needs-dependencies`: checks licensing, security constraints
+- `needs-supply-review`: checks supply chain constraints, licensing constraints, security constraints
 - `needs-security`: checks security constraints
 - `needs-compliance`: checks licensing constraints
 
