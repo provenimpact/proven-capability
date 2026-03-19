@@ -102,7 +102,7 @@ For each dependency on the review list, fetch data from available sources. Not e
 |---|---|---|
 | Package registry (npm, PyPI, crates.io, etc.) | Version, license, description, publish dates, maintainer count, weekly downloads | Web fetch to registry API |
 | GitHub / GitLab repository | Stars, forks, open issues, contributors, last commit, recent commit frequency, SECURITY.md presence, branch protection | Web fetch to repo page or API |
-| [deps.dev](https://deps.dev/) | OpenSSF Scorecard score, known vulnerabilities (via OSV), dependency count, dependent count | Web fetch |
+| [deps.dev](https://deps.dev/) | OpenSSF Scorecard (overall score + individual check scores/details), known vulnerabilities (via advisoryKeys), dependency count, dependent count, SLSA provenance, stars, forks | Web fetch (version endpoint for advisories/license/provenance; project endpoint for scorecard/stars/forks) |
 | [bestpractices.dev](https://www.bestpractices.dev/) | OpenSSF Best Practices badge status and level | Web fetch |
 
 **Recommended API endpoints:**
@@ -113,7 +113,8 @@ Use these specific endpoints rather than scraping web pages -- they return struc
 |---|---|---|
 | npm registry | `https://registry.npmjs.org/<package>/<version>` | Use the single-version endpoint to avoid huge responses. For download counts: `https://api.npmjs.org/downloads/point/last-week/<package>` |
 | PyPI | `https://pypi.org/pypi/<package>/json` | Includes version history, license, maintainers |
-| deps.dev API | `https://api.deps.dev/v3alpha/systems/<system>/packages/<package>/versions/<version>` | Systems: `npm`, `pypi`, `cargo`, `go`, `maven`. Returns scorecard, advisories, dependencies. Also useful: `https://api.deps.dev/v3alpha/advisories/<advisory-id>` for full advisory details |
+| deps.dev version API | `https://api.deps.dev/v3alpha/systems/<system>/packages/<package>/versions/<version>` | Systems: `npm`, `pypi`, `cargo`, `go`, `maven`. Returns license, advisories, provenance/attestations, and `relatedProjects` with the source repo project ID. Does **not** return scorecard data -- use the project endpoint for that. Also useful: `https://api.deps.dev/v3alpha/advisories/<advisory-id>` for full advisory details |
+| deps.dev project API | `https://api.deps.dev/v3alpha/projects/<url-encoded-project-id>` | Returns the full OpenSSF Scorecard with individual check scores. The project ID is the repo path (e.g., `github.com/colinhacks/zod`) URL-encoded as `github.com%2Fcolinhacks%2Fzod`. Get the project ID from the version endpoint's `relatedProjects[].projectKey.id` field, or construct it from the source repo URL. See "Extracting OpenSSF Scorecard data" below for details. |
 | bestpractices.dev | `https://www.bestpractices.dev/en/projects.json?q=<package-name>` | Returns JSON array. Filter results carefully -- the search is fuzzy and may return unrelated projects. Match on repository URL, not just name. |
 | GitHub API | `https://api.github.com/repos/<owner>/<repo>` | Rate-limited but no auth required for basic metadata. For security policy: check if `SECURITY.md` exists at repo root. |
 | OSV | OSV's query API requires POST requests, which may not be available via web fetch. Use deps.dev's `advisoryKeys` field as the primary vulnerability source instead. If deps.dev data is unavailable, check `https://osv.dev/vulnerability/<id>` for known advisory IDs. |
@@ -122,13 +123,51 @@ Use these specific endpoints rather than scraping web pages -- they return struc
 
 Fetch in parallel where possible. For each package:
 
-1. Determine the source repository URL from the package registry metadata
-2. Fetch registry metadata (version history, license, maintainers, downloads)
-3. Fetch repository data (activity, contributors, security policy)
-4. Fetch deps.dev data (scorecard, vulnerabilities, dependency graph)
-5. Fetch bestpractices.dev badge status
+1. Fetch registry metadata (version history, license, maintainers, downloads)
+2. Fetch deps.dev **version** endpoint (advisories, license, provenance, and `relatedProjects` to get the source repo project ID)
+3. From the version endpoint response, extract the source repository project ID from `relatedProjects` (or construct it from the registry's repo URL)
+4. Fetch deps.dev **project** endpoint using the project ID (OpenSSF Scorecard with individual checks, stars, forks)
+5. Fetch repository data from GitHub/GitLab (activity, contributors, security policy) -- though much of this is now available from the deps.dev project endpoint
+6. Fetch bestpractices.dev badge status
 
 If a fetch fails or a data source isn't available for this ecosystem, note the gap in the report rather than blocking the review. A review with partial data is better than no review.
+
+**Extracting OpenSSF Scorecard data from deps.dev:**
+
+The OpenSSF Scorecard is one of the most valuable automated signals for supply chain evaluation. It requires a two-step fetch because the scorecard lives on the **project** endpoint, not the version endpoint:
+
+1. **Get the source repo project ID.** From the version endpoint response, find the source repository in `relatedProjects` (look for `relationType: "SOURCE_REPO"`). The `projectKey.id` is the project ID (e.g., `github.com/colinhacks/zod`). Alternatively, if you already know the repo URL from the registry metadata, construct the project ID by stripping the protocol (e.g., `https://github.com/stripe/stripe-node` becomes `github.com/stripe/stripe-node`).
+
+2. **Fetch the project endpoint.** URL-encode the project ID (replace `/` with `%2F`) and fetch `https://api.deps.dev/v3alpha/projects/<encoded-id>`. The response contains:
+   - `scorecard.overallScore` -- the aggregate score (0-10)
+   - `scorecard.checks[]` -- array of individual checks, each with:
+     - `name` -- check name (e.g., `Code-Review`, `Maintained`, `Dangerous-Workflow`, `Branch-Protection`, `CI-Tests`, `Token-Permissions`, `Pinned-Dependencies`, `Security-Policy`, `License`, `Fuzzing`, `SAST`, `Binary-Artifacts`, `Signed-Releases`, `CII-Best-Practices`, `Packaging`)
+     - `score` -- 0-10 (-1 means "check couldn't run or doesn't apply")
+     - `reason` -- human-readable explanation
+     - `details[]` -- specific findings (Info/Warn messages)
+   - `starsCount`, `forksCount`, `openIssuesCount`, `license`, `description`
+
+3. **Map scorecard checks to report sections.** Individual checks provide evidence for multiple parts of the report -- don't just record the overall score:
+
+   | Scorecard Check | Maps to Report Section | How to Use |
+   |---|---|---|
+   | `Maintained` | Maintenance > Activity Level | Score 10 = active, 0 = inactive. Reason gives commit/issue counts. |
+   | `Code-Review` | Security Practices > OpenSSF Scorecard | Fraction of approved changesets. Low scores mean PRs merged without review. |
+   | `CI-Tests` | Security Practices > Testing Practices | Whether CI runs tests on commits. |
+   | `Branch-Protection` | Security Practices > Repository Security | Score -1 often means the check couldn't read settings (not necessarily unprotected). |
+   | `Dangerous-Workflow` | Security Practices > OpenSSF Scorecard | Detects dangerous GitHub Actions patterns (e.g., `pull_request_target` with code checkout). |
+   | `Token-Permissions` | Security Practices > OpenSSF Scorecard | Whether workflow tokens follow least privilege. |
+   | `Pinned-Dependencies` | Security Practices > Dependency Management | Whether CI dependencies are pinned by hash. |
+   | `Security-Policy` | Security Practices > Vulnerability Reporting | Whether SECURITY.md exists. |
+   | `Signed-Releases` | Security Practices > OpenSSF Scorecard | Whether releases are cryptographically signed. Score -1 = no releases found. |
+   | `SAST` | Code Evaluation > Static Analysis | Whether static analysis tools run on commits. |
+   | `Fuzzing` | Security Practices > Testing Practices | Whether the project uses fuzzing. |
+   | `Binary-Artifacts` | Security Practices > OpenSSF Scorecard | Whether binary files exist in the repo (potential supply chain risk). |
+   | `License` | Adoption & Licensing > License | License file detected and recognized. |
+   | `CII-Best-Practices` | Security Practices > Best Practices Badge | OpenSSF Best Practices badge status. |
+   | `Packaging` | Security Practices > OpenSSF Scorecard | Whether a publishing workflow is detected. Score -1 = not detected. |
+
+   Checks with score `-1` mean "not applicable" or "couldn't determine" -- treat these as `Unavailable` in the report, not as failures.
 
 ### 3. Map data to OpenSSF evaluation categories
 
@@ -160,13 +199,13 @@ The OpenSSF guide organizes evaluation into 7 categories. Each category contains
 | Best Practices Badge | Yes | bestpractices.dev | Badge earned or in progress |
 | Dependency Management | Yes | deps.dev + registry | Dependencies are not significantly outdated |
 | Security Audits | Partial | OpenSSF security reviews list | Check if a public audit exists |
-| Security Scores | Yes | deps.dev | OpenSSF Scorecard >= 5/10, no known HIGH/CRITICAL vulnerabilities |
-| Testing Practices | Partial | Scorecard (CI-Tests check) | CI pipeline exists with automated tests |
+| Security Scores | Yes | deps.dev project endpoint | OpenSSF Scorecard overall >= 5/10, individual checks (Code-Review, Dangerous-Workflow, Token-Permissions, etc.) inform specific security aspects |
+| Testing Practices | Partial | Scorecard `CI-Tests` + `Fuzzing` checks | CI pipeline exists with automated tests; fuzzing in use |
 | Vulnerability Status | Yes | deps.dev / OSV | No known HIGH or CRITICAL vulnerabilities in the current version |
-| Repository Security | Partial | Scorecard (Branch-Protection) | Branch protection enabled |
+| Repository Security | Partial | Scorecard `Branch-Protection` check | Branch protection enabled (score -1 = check couldn't determine, not necessarily unprotected) |
 | Security Response | No | Human judgment | Project fixes security bugs promptly, offers LTS if applicable |
 | Security Documentation | No | Human judgment | Assurance case or security design documentation exists |
-| Security Development | Partial | Scorecard | Evidence of secure development practices per OpenSSF Scorecard checks |
+| Security Development | Partial | Scorecard `Signed-Releases`, `Pinned-Dependencies`, `Token-Permissions`, `SAST` checks | Evidence of secure development practices per individual OpenSSF Scorecard checks |
 
 **Category 4: Usability & Security**
 
@@ -382,10 +421,25 @@ Pre-release:: <Yes (alpha/beta/rc) | No>
 == Security Practices
 
 === OpenSSF Scorecard
-// [auto] Scorecard from deps.dev
+// [auto] Scorecard from deps.dev project endpoint
 Status:: <Pass (>= 5) | Warn (3-5) | Fail (< 3) | Unavailable>
-Score:: <N/10 or "not available">
-Key checks:: <list notable pass/fail checks>
+Overall score:: <N/10 or "not available">
+Scorecard date:: <YYYY-MM-DD>
+
+Individual checks::
+// List each check from scorecard.checks[]. Include score and reason.
+// Omit checks with score -1 (not applicable) or group them as "N/A".
+[cols="3,1,4"]
+!===
+! Check ! Score ! Finding
+
+! <check-name>
+! <0-10>
+! <reason summary>
+
+!===
+
+Key concerns:: <highlight any checks scoring 0 or with Warn-level details>
 
 === Best Practices Badge
 // [auto] OpenSSF Best Practices badge
@@ -598,7 +652,11 @@ Status:: Pending Review
   "ecosystem": "<ecosystem>",
   "risk_level": "<low|medium|high|critical>",
   "verdict": "<accept|review_required|reject>",
-  "scorecard": <score or null>,
+  "scorecard_overall": <score or null>,
+  "scorecard_checks": {
+    "<check-name>": <score>,
+    "...": "..."
+  },
   "known_vulnerabilities": <count>,
   "license": "<SPDX>",
   "license_compliant": <true|false|null>,
@@ -723,6 +781,7 @@ Before finalizing, verify:
 
 - [ ] Every reviewed dependency has all 7 OpenSSF categories addressed
 - [ ] Auto-fetched data includes source citations (URLs, dates accessed)
+- [ ] OpenSSF Scorecard individual checks are listed (not just the overall score) when available from deps.dev project endpoint
 - [ ] Manual review items are either filled in (when public evidence is conclusive) or marked `Pending Review` with guidance on what to assess
 - [ ] Risk score is computed with breakdown showing how the verdict was derived
 - [ ] Constraint violations are surfaced with specific constraint text

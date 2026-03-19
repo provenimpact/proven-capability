@@ -1,0 +1,123 @@
+{
+  "skill_name": "needs-supply-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Evaluate whether we should use the `zod` package for input validation in our TypeScript project",
+      "expected_output": "A supply review report for zod at docs/supply-reviews/zod.adoc following the OpenSSF 7-category structure, with auto-populated data from npm registry, deps.dev version and project endpoints, and a risk score with verdict",
+      "files": [],
+      "expectations": [
+        "Report is written to docs/supply-reviews/zod.adoc",
+        "Report contains an OpenSSF Scorecard section with the overall score from deps.dev project endpoint",
+        "Report lists individual scorecard checks (e.g. Maintained, Code-Review, Dangerous-Workflow) with their scores and reasons",
+        "Scorecard data is fetched from the deps.dev project endpoint, not just the version endpoint",
+        "Report includes a Risk Assessment score breakdown table with weighted category scores",
+        "Report includes a CI Data JSON block with scorecard_overall and scorecard_checks fields",
+        "All 7 OpenSSF evaluation categories are addressed in the report"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Run a supply chain review of all our project dependencies",
+      "expected_output": "Individual supply review .adoc files for each dependency in docs/supply-reviews/ plus a _index.adoc summary with risk distribution, verdicts, and CI data block. Each individual report should include scorecard data from deps.dev.",
+      "files": [],
+      "expectations": [
+        "Each individual review file contains an OpenSSF Scorecard section with individual check scores",
+        "The _index.adoc summary file is created with risk distribution and verdict distribution",
+        "CI Data blocks in individual reports include scorecard_checks object",
+        "Deps.dev project endpoint is used to fetch scorecard data for each dependency"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I want to add `stripe` as a payment processing dependency for our e-commerce checkout flow",
+      "expected_output": "A supply review for stripe recognizing this as both a dependency addition and a supply chain review trigger, with full scorecard data from deps.dev",
+      "files": [],
+      "expectations": [
+        "Report is written to docs/supply-reviews/stripe.adoc",
+        "Report contains OpenSSF Scorecard section with individual check scores fetched from deps.dev project endpoint",
+        "Scorecard checks like Maintained, Code-Review, CI-Tests are listed with scores and reasons",
+        "Key scorecard concerns are highlighted (e.g. checks scoring 0)",
+        "Report includes CI Data JSON with scorecard_overall and scorecard_checks"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our review of lodash is 8 months old and we're still on the same version. Is it still safe to use?",
+      "expected_output": "The skill should detect the stale review (>180 day threshold), re-fetch current data including fresh scorecard from deps.dev, update the existing review preserving any manual entries, and compare the new findings against the previous review.",
+      "files": [],
+      "expectations": [
+        "Stale review is detected based on the >180 day threshold",
+        "Fresh OpenSSF Scorecard data is fetched from deps.dev project endpoint",
+        "Updated report includes individual scorecard check scores",
+        "Previous manual entries are preserved in the updated report",
+        "Report notes what changed since the last review"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Evaluate node-ipc for inclusion in our project as an IPC communication library",
+      "expected_output": "The skill should produce a High or Critical risk review flagging the protestware/supply chain attack history. Scorecard data should be fetched and included even for risky packages. The verdict should be Review Required or Reject.",
+      "files": [],
+      "expectations": [
+        "Report flags the protestware/supply chain attack history (peacenotwar incident)",
+        "Verdict is Review Required or Reject",
+        "OpenSSF Scorecard data is fetched from deps.dev project endpoint and included in the report",
+        "Individual scorecard checks are listed even though the package is flagged as risky",
+        "Risk level is High or Critical"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I want to add the `react-pdf` package to generate PDF invoices. Note: our project constraints only allow MIT, Apache-2.0, and BSD-licensed dependencies.",
+      "expected_output": "The skill should detect licensing constraints, fetch scorecard data from deps.dev, and surface any constraint violations prominently.",
+      "files": [],
+      "expectations": [
+        "License constraint check is performed against the allowed list",
+        "OpenSSF Scorecard data is fetched from deps.dev project endpoint",
+        "Individual scorecard checks are listed with scores",
+        "Constraint compliance section addresses the licensing constraint",
+        "CI Data JSON includes scorecard_overall and scorecard_checks"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "We just upgraded react from version 18.2.0 to 19.0.0. Our existing supply review was done for 18.2.0. Does the review still hold?",
+      "expected_output": "The skill should detect major version drift, re-fetch all data including fresh scorecard from deps.dev for v19, and highlight what changed between versions.",
+      "files": [],
+      "expectations": [
+        "Major version drift is detected",
+        "Fresh OpenSSF Scorecard is fetched from deps.dev project endpoint for the current codebase state",
+        "Individual scorecard checks are listed in the updated report",
+        "Previous manual entries are preserved as reference",
+        "Report highlights changes that might affect the risk assessment"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Show me which of our dependencies would block the CI pipeline based on their supply review status. We need to know what's blocking before we can merge.",
+      "expected_output": "The skill should output a focused report using CI Data blocks from existing reviews, including scorecard data, listing blocking dependencies.",
+      "files": [],
+      "expectations": [
+        "Report lists dependencies with verdict=reject or risk_level=critical",
+        "Report lists any unresolved constraint violations",
+        "Output references scorecard data from CI Data blocks where available",
+        "Output is structured for machine parsing"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Review the express package for our Node.js API server. I want to see what the OpenSSF Scorecard says about it in detail.",
+      "expected_output": "A supply review for express with particular emphasis on the full OpenSSF Scorecard breakdown, fetched from the deps.dev project endpoint with all individual checks listed.",
+      "files": [],
+      "expectations": [
+        "Report is written to docs/supply-reviews/express.adoc",
+        "Deps.dev project endpoint is fetched using the correct project ID for express (github.com/expressjs/express)",
+        "OpenSSF Scorecard section lists all available individual checks with scores and reasons",
+        "Scorecard checks are mapped to relevant report sections (e.g. Maintained -> Activity Level, CI-Tests -> Testing Practices, Branch-Protection -> Repository Security)",
+        "Key concerns section highlights any checks scoring 0 or with warnings",
+        "CI Data JSON includes scorecard_checks object with individual check scores"
+      ]
+    }
+  ]
+}

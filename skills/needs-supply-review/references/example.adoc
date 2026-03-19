@@ -66,11 +66,36 @@ Constraint implications:
 * SECURITY.md: Present
 * Branch protection: Enabled (inferred from Scorecard)
 
-**deps.dev (https://deps.dev/npm/stripe):**
+**deps.dev version endpoint (https://api.deps.dev/v3alpha/systems/npm/packages/stripe/versions/14.12.0):**
 
-* OpenSSF Scorecard: 6.8/10
-* Known vulnerabilities: 0
+* License: MIT
+* Advisories: none
+* SLSA provenance: verified (source: github.com/stripe/stripe-node)
+* Related project ID: `github.com/stripe/stripe-node`
 * Direct dependencies: 1 (node-fetch for some older Node.js versions)
+
+**deps.dev project endpoint (https://api.deps.dev/v3alpha/projects/github.com%2Fstripe%2Fstripe-node):**
+
+* OpenSSF Scorecard overall: 6.8/10 (date: 2026-02-20)
+* Individual checks:
+  - Maintained: 10/10 (30 commits and 5 issue activity in last 90 days)
+  - Code-Review: 8/10 (24/29 approved changesets)
+  - Dangerous-Workflow: 10/10 (no dangerous patterns)
+  - Binary-Artifacts: 10/10 (no binaries found)
+  - License: 10/10 (MIT detected)
+  - CI-Tests: 7/10 (tests detected in CI)
+  - Branch-Protection: -1 (could not determine -- token permissions)
+  - Pinned-Dependencies: 2/10 (many unpinned GitHub Actions)
+  - Token-Permissions: 5/10 (some excessive permissions)
+  - Security-Policy: 10/10 (SECURITY.md found)
+  - Signed-Releases: 0/10 (releases not cryptographically signed)
+  - SAST: 0/10 (no static analysis detected)
+  - Fuzzing: 0/10 (no fuzzing detected)
+  - CII-Best-Practices: 0/10 (no badge)
+  - Packaging: -1 (no publishing workflow detected)
+* Stars: ~3,800
+* Forks: ~580
+* Open issues: ~45
 * Dependents: ~28,000 packages
 
 **bestpractices.dev:**
@@ -153,9 +178,69 @@ Pre-release:: No
 
 === OpenSSF Scorecard
 Status:: Pass
-Score:: 6.8/10
-Key checks:: Branch-Protection: pass, CI-Tests: pass,
-  Signed-Releases: fail, Dependency-Update-Tool: pass
+Overall score:: 6.8/10
+Scorecard date:: 2026-02-20
+
+Individual checks::
+[cols="3,1,4"]
+!===
+! Check ! Score ! Finding
+
+! Maintained
+! 10
+! 30 commits and 5 issue activity in last 90 days
+
+! Code-Review
+! 8
+! 24/29 approved changesets
+
+! Dangerous-Workflow
+! 10
+! No dangerous patterns detected
+
+! Binary-Artifacts
+! 10
+! No binaries in repo
+
+! License
+! 10
+! MIT detected
+
+! CI-Tests
+! 7
+! Tests detected in CI pipeline
+
+! Token-Permissions
+! 5
+! Some excessive workflow permissions
+
+! Security-Policy
+! 10
+! SECURITY.md found
+
+! Pinned-Dependencies
+! 2
+! Many unpinned GitHub Actions dependencies
+
+! Signed-Releases
+! 0
+! Releases not cryptographically signed
+
+! SAST
+! 0
+! No static analysis tool detected
+
+! Fuzzing
+! 0
+! No fuzzing integration detected
+
+! CII-Best-Practices
+! 0
+! No OpenSSF badge detected
+
+!===
+
+Key concerns:: Signed-Releases (0), SAST (0), Fuzzing (0), Pinned-Dependencies (2). These are common gaps even in well-maintained projects. Signed-Releases and SAST are the most actionable.
 
 === Best Practices Badge
 Status:: Unavailable
@@ -364,7 +449,22 @@ No overrides applied.
   "ecosystem": "npm",
   "risk_level": "low",
   "verdict": "accept",
-  "scorecard": 6.8,
+  "scorecard_overall": 6.8,
+  "scorecard_checks": {
+    "Maintained": 10,
+    "Code-Review": 8,
+    "Dangerous-Workflow": 10,
+    "Binary-Artifacts": 10,
+    "License": 10,
+    "CI-Tests": 7,
+    "Token-Permissions": 5,
+    "Security-Policy": 10,
+    "Pinned-Dependencies": 2,
+    "Signed-Releases": 0,
+    "SAST": 0,
+    "Fuzzing": 0,
+    "CII-Best-Practices": 0
+  },
   "known_vulnerabilities": 0,
   "license": "MIT",
   "license_compliant": true,
