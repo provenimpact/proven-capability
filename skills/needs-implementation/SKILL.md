@@ -20,7 +20,7 @@ From the orchestrator, identify:
 
 ### 2. Read feature task list
 
-Read `docs/features/<slug>/tasks.yaml` if it exists. Extract `version`, `status`, `source_design_version`, `source_spec_version`, `overview`, and all tasks with metadata (`id`, `title`, `done`, `depends_on`, `components`, `stories`, `requirements`, `description`).
+Read `docs/features/<slug>/tasks.yaml` if it exists. Extract `version`, `status`, any recorded provenance fields (`source_design_version`, `source_spec_version`), `overview`, and all tasks with metadata (`id`, `title`, `done`, `depends_on`, `components`, `stories`, `requirements`, `description`).
 
 Perform a dependency analysis:
 - Identify root tasks (`depends_on: []`)

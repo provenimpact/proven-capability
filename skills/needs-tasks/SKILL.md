@@ -25,7 +25,7 @@ Assess the current state of the task list for this feature.
 
 Read `docs/features/<slug>/design.adoc`. Extract `:version:`, `:source-spec-version:`, `:status:`, system design sections, requirement resolution mappings. Also read `data-model.adoc` and `contracts/` if they exist within the feature package.
 
-**If missing:** Note that design is unavailable. Report to the orchestrator. Tasks will be derived directly from spec.yaml requirements (requirement-driven derivation). If proceeding: set `source_design_version` to `n/a`.
+**If missing:** Note that design is unavailable. Report to the orchestrator. Tasks will be derived directly from spec.yaml requirements (requirement-driven derivation). In that case, omit `source_design_version` and record spec provenance only.
 
 ### 2. Read feature spec
 
@@ -36,7 +36,7 @@ Read `docs/features/<slug>/spec.yaml`. Extract:
 ### 3. Read existing task list
 
 If `docs/features/<slug>/tasks.yaml` exists:
-- Read `version`, `status`, `source_design_version`, `source_spec_version`
+- Read `version`, `status`, and any recorded provenance fields (`source_design_version`, `source_spec_version`)
 - Read all tasks, done states, and dependency structure
 - Perform topological analysis to identify root tasks and execution order
 
@@ -68,15 +68,21 @@ Given the desired state from the orchestrator, determine what action is needed.
 |---|---|
 | No task list exists | Create task list |
 | Task list exists, `status` is `Implemented` | Previous cycle complete. Create fresh task list (overwrite). |
-| Source versions match, no tasks done | Task list appears current. Report to orchestrator. |
-| Source versions match, some tasks done | Partial progress. Report to orchestrator. |
-| `source_design_version` differs from current design | Task list is stale. Determine whether to recreate or incrementally update. |
+| Recorded source versions match, no tasks done | Task list appears current. Report to orchestrator. |
+| Recorded source versions match, some tasks done | Partial progress. Report to orchestrator. |
+| Any recorded source version differs from its upstream artifact | Task list is stale. Determine whether to recreate or incrementally update. |
+| No provenance fields are present | Task list is invalid. Regenerate it before proceeding. |
 
 ### 2. Transitive staleness check
 
-If `source_design_version` matches the current design version, trust that the design is current -- the design skill is responsible for tracking its own upstream staleness against `spec.yaml`.
+Evaluate staleness only against the provenance fields that are actually present:
 
-If `source_design_version` does not match, the task list is stale. Warn the orchestrator and recommend updating the design first (which will cascade any upstream spec changes into the design before tasks are regenerated).
+- If `source_design_version` exists, compare it to the current design version.
+- If `source_spec_version` exists, compare it to the current spec version.
+- If both exist, either mismatch makes the task list stale.
+- If neither exists, the task file is invalid, not merely stale.
+
+If tasks are design-driven and design provenance is stale, recommend updating the design first so upstream spec changes flow through the design before tasks are regenerated.
 
 ### 3. Check constraints
 
@@ -118,7 +124,7 @@ When a design document exists, walk through it systematically to identify discre
 
 ### Requirement-driven task derivation (when no design exists)
 
-When `source_design_version` is `n/a`, derive tasks directly from spec.yaml requirements:
+When design is absent, derive tasks directly from spec.yaml requirements:
 
 1. Read each story and its requirements
 2. For each story, create one or more tasks. Group related requirements into a single task when tightly coupled; split when independently implementable.
@@ -156,12 +162,12 @@ Create `docs/features/<slug>/tasks.yaml`:
 ```yaml
 # yaml-language-server: $schema=../../../skills/needs-tasks/schemas/tasks.schema.json
 
-schema_version: "2.0.0"
+schema_version: "3.0.0"
 feature: <slug>
 version: "1.0.0"
 status: Current
-source_design_version: "<design version>"
-source_spec_version: "<spec.yaml version>"
+source_design_version: "<design version>"        # include when design informed the task graph
+source_spec_version: "<spec.yaml version>"       # include when spec informed the task graph
 last_updated: "YYYY-MM-DD"
 
 overview: >-
@@ -187,15 +193,48 @@ tasks:
       <What to implement and key details>
 ```
 
+When tasks are derived without design, omit `source_design_version` and `components`:
+
+```yaml
+schema_version: "3.0.0"
+feature: <slug>
+version: "1.0.0"
+status: Current
+source_spec_version: "<spec.yaml version>"
+last_updated: "YYYY-MM-DD"
+
+overview: >-
+  <Brief summary: what is being implemented, total tasks, dependency structure.>
+
+tasks:
+  - id: TASK-001
+    title: <Task title>
+    depends_on: []
+    stories: [US-001]
+    requirements: [PREFIX-001, PREFIX-002]
+    description: >-
+      <What to implement and key details>
+
+  - id: TASK-002
+    title: <Task title>
+    depends_on: [TASK-001]
+    stories: [US-001]
+    requirements: [PREFIX-003]
+    description: >-
+      <What to implement and key details>
+```
+
 **`status` values:**
 - `Current` -- task list is valid and aligned with design
 - `Stale` -- design has changed since this task list was created
 - `Implemented` -- all tasks are done
 
 **Version rules:**
+- `schema_version` must match the tasks schema major version and is now `3.0.0`
 - `version` uses SemVer, starts at `1.0.0`
-- `source_design_version` records which design version was used; `n/a` if design was skipped
-- `source_spec_version` records which spec version was used
+- `source_design_version` is present only when design informed task creation or updates
+- `source_spec_version` is present only when spec informed task creation or updates
+- At least one provenance field (`source_design_version` or `source_spec_version`) must be present
 - `last_updated` set to today's date
 
 **Task IDs:** Sequential across the entire file: TASK-001, TASK-002, etc. IDs are stable -- do not renumber when updating.
@@ -219,13 +258,13 @@ Fix any errors before reporting completion.
 Before finalizing, verify:
 - Every requirement ID from spec.yaml appears in at least one task
 - Every story is covered by the aggregate tasks
-- Every design section has corresponding tasks (skip if `source_design_version` is `n/a`)
+- Every design section has corresponding tasks (check only when `source_design_version` is present)
 - The graph has at least one root task (no dependencies)
 - No circular dependencies exist
 - All `depends_on` references point to valid task IDs
 - Each task is a discrete, implementable coding unit
 - Dependency structure reflects actual implementation order
-- Source versions are recorded correctly
+- At least one provenance field is recorded and all recorded source versions are correct
 - Quality constraints from `docs/constraints.yaml` are addressed (e.g., testing tasks exist if the project uses TDD per ADR decision)
 - The validation script passes: `python skills/needs-tasks/scripts/validate-tasks.py docs/features/<slug>/tasks.yaml`
 

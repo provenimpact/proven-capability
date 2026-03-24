@@ -87,7 +87,7 @@ def find_spec_files(args: list[str]) -> list[Path]:
     return [Path(a) for a in args]
 
 
-def validate_file(file_path: Path) -> list[str]:
+def validate_file(file_path: Path) -> tuple[list[str], dict | None]:
     errors = []
     label = str(file_path)
 
@@ -96,7 +96,7 @@ def validate_file(file_path: Path) -> list[str]:
         doc = yaml.safe_load(file_path.read_text())
     except yaml.YAMLError as e:
         errors.append(f"{label}: YAML parse error: {e}")
-        return errors
+        return errors, None
 
     # JSON Schema validation
     try:
@@ -104,7 +104,7 @@ def validate_file(file_path: Path) -> list[str]:
     except ValidationError as e:
         path = "/".join(str(p) for p in e.absolute_path) or "(root)"
         errors.append(f"{label}: schema: /{path} {e.message}")
-        return errors
+        return errors, doc
 
     # Schema version compatibility
     errors.extend(check_schema_version(doc, label))
@@ -219,7 +219,7 @@ def validate_file(file_path: Path) -> list[str]:
                     f'{label}: {req["id"]}: requirement text does not contain "shall".'
                 )
 
-    return errors
+    return errors, doc
 
 
 def validate_cross_file(parsed_docs: list[tuple[Path, dict]]) -> list[str]:
@@ -255,22 +255,17 @@ def main():
             total_errors += 1
             continue
 
-        errors = validate_file(file_path)
+        errors, doc = validate_file(file_path)
 
         if not errors:
             print(f"PASS  {file_path}")
-            doc = yaml.safe_load(file_path.read_text())
             parsed_docs.append((file_path, doc))
         else:
             print(f"FAIL  {file_path}")
             for err in errors:
                 print(f"  - {err}")
             total_errors += len(errors)
-            try:
-                doc = yaml.safe_load(file_path.read_text())
-                parsed_docs.append((file_path, doc))
-            except Exception:
-                parsed_docs.append((file_path, None))
+            parsed_docs.append((file_path, doc))
 
     if len(parsed_docs) > 1:
         cross_errors = validate_cross_file(parsed_docs)

@@ -365,7 +365,9 @@ Options:
 
 Check if any existing artifacts involved in the transition are stale:
 - spec.yaml updated but design not refreshed? (`:source-spec-version:` mismatch)
-- Design updated but tasks not refreshed? (`source_design_version` mismatch in tasks.yaml)
+- tasks.yaml invalid because it records no upstream provenance? (neither `source_design_version` nor `source_spec_version` exists)
+- Design updated but tasks not refreshed? (check only when `source_design_version` exists in tasks.yaml)
+- spec.yaml updated but tasks not refreshed? (check only when `source_spec_version` exists in tasks.yaml)
 - Feature implemented but architecture not updated?
 
 Report staleness and recommend resolution before proceeding.
@@ -508,8 +510,8 @@ sequenceDiagram
 
 When `needs-implementation` finishes, it reports any divergences between the design and what was actually built. Present this analysis to the user with enough context to make a good decision.
 
-**Divergence report verification:**
-After `needs-implementation` completes, verify that it produced a divergence report. If no report was provided, request the report before proceeding.
+**Divergence report verification (MANDATORY):**
+After `needs-implementation` completes, verify that it produced a divergence report. If no report was provided, request the report before proceeding. Do not proceed to validation without a divergence report -- it is a required output of the implementation phase.
 
 **Error handling:**
 - If a capability fails validation -> stop, report to user, ask how to proceed
@@ -715,7 +717,7 @@ stateDiagram-v2
 
 `spec.yaml` uses SemVer independently. Downstream artifacts track their upstream:
 - `design.adoc` tracks `:source-spec-version:`
-- `tasks.yaml` tracks `source_design_version` and `source_spec_version`
+- `tasks.yaml` tracks whichever upstream provenance fields apply to the transition (`source_design_version`, `source_spec_version`, or both). At least one must be present.
 
 ### Format and dates
 

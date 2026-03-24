@@ -25,9 +25,8 @@ Exit codes:
 """
 
 import json
-import re
 import sys
-from collections import defaultdict
+from collections import defaultdict, deque
 from pathlib import Path
 
 try:
@@ -133,44 +132,43 @@ def load_spec_ids(
 
 
 def detect_circular_dependencies(tasks: list[dict]) -> list[str]:
-    """Detect circular dependencies using DFS. Returns list of error messages."""
-    errors = []
-    task_map = {t["id"]: t for t in tasks}
-    task_ids = set(task_map.keys())
+    """Detect circular dependencies using Kahn's algorithm."""
+    task_ids = {task["id"] for task in tasks}
+    in_degree = {task_id: 0 for task_id in task_ids}
+    adjacency: dict[str, list[str]] = defaultdict(list)
 
     for task in tasks:
-        visited = set()
-        path = []
+        for dep in task["depends_on"]:
+            if dep not in task_ids:
+                continue
+            adjacency[dep].append(task["id"])
+            in_degree[task["id"]] += 1
 
-        def dfs(current_id: str) -> bool:
-            if current_id in path:
-                cycle_start = path.index(current_id)
-                cycle = path[cycle_start:] + [current_id]
-                return True
-            if current_id in visited:
-                return False
+    queue = deque(
+        sorted(task_id for task_id, degree in in_degree.items() if degree == 0)
+    )
+    processed = []
 
-            visited.add(current_id)
-            path.append(current_id)
+    while queue:
+        current_id = queue.popleft()
+        processed.append(current_id)
+        for dependent_id in adjacency[current_id]:
+            in_degree[dependent_id] -= 1
+            if in_degree[dependent_id] == 0:
+                queue.append(dependent_id)
 
-            deps = task_map.get(current_id, {}).get("depends_on", [])
-            for dep in deps:
-                if dep not in task_ids:
-                    continue
-                if dfs(dep):
-                    return True
+    if len(processed) != len(tasks):
+        cycle_nodes = sorted(
+            task_id for task_id, degree in in_degree.items() if degree > 0
+        )
+        return ["Circular dependency detected involving: " + ", ".join(cycle_nodes)]
 
-            path.pop()
-            return False
-
-        if dfs(task["id"]):
-            errors.append(f"Circular dependency detected involving {task['id']}")
-            break
-
-    return errors
+    return []
 
 
-def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
+def validate_file(
+    file_path: Path, explicit_spec: Path | None
+) -> tuple[list[str], dict | None]:
     errors = []
     label = str(file_path)
 
@@ -178,16 +176,22 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
         doc = yaml.safe_load(file_path.read_text())
     except yaml.YAMLError as e:
         errors.append(f"{label}: YAML parse error: {e}")
-        return errors
+        return errors, None
 
     try:
         validate(instance=doc, schema=schema)
     except ValidationError as e:
         path = "/".join(str(p) for p in e.absolute_path) or "(root)"
         errors.append(f"{label}: schema: /{path} {e.message}")
-        return errors
+        return errors, doc
 
     errors.extend(check_schema_version(doc, label))
+
+    if not doc.get("source_design_version") and not doc.get("source_spec_version"):
+        errors.append(
+            f"{label}: at least one provenance field is required: "
+            "source_design_version or source_spec_version"
+        )
 
     tasks = doc["tasks"]
 
@@ -216,7 +220,7 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
 
     all_deps = set()
     for task in tasks:
-        deps = task.get("depends_on", [])
+        deps = task["depends_on"]
         for dep in deps:
             all_deps.add(dep)
 
@@ -226,7 +230,7 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
 
     errors.extend(detect_circular_dependencies(tasks))
 
-    root_tasks = [t for t in tasks if not t.get("depends_on", [])]
+    root_tasks = [t for t in tasks if not t["depends_on"]]
     if not root_tasks and tasks:
         errors.append(f"{label}: no root tasks found (every task has dependencies)")
 
@@ -271,7 +275,7 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
                 f"{', '.join(sorted(unknown_stories))}"
             )
 
-    return errors
+    return errors, doc
 
 
 def main():
@@ -286,10 +290,9 @@ def main():
             total_errors += 1
             continue
 
-        errors = validate_file(file_path, explicit_spec)
+        errors, doc = validate_file(file_path, explicit_spec)
 
         if not errors:
-            doc = yaml.safe_load(file_path.read_text())
             task_count = len(doc["tasks"])
             done_count = sum(1 for t in doc["tasks"] if t.get("done", False))
             print(f"PASS  {file_path} ({done_count}/{task_count} done)")

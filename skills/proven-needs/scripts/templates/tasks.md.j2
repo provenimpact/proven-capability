@@ -1,7 +1,9 @@
 # Implementation Tasks: {{ doc.feature }}
 
 **Version:** {{ doc.version }} | **Status:** {{ doc.status }} | **Updated:** {{ doc.last_updated }}
-**Source spec:** {{ doc.source_spec_version }}{% if doc.source_design_version %} | **Source design:** {{ doc.source_design_version }}{% endif %}
+{% if doc.source_spec_version or doc.source_design_version %}
+**Provenance:**{% if doc.source_spec_version %} spec {{ doc.source_spec_version }}{% endif %}{% if doc.source_design_version %}{% if doc.source_spec_version %} |{% endif %} design {{ doc.source_design_version }}{% endif %}
+{% endif %}
 
 {{ doc.overview }}
 

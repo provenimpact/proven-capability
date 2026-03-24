@@ -113,7 +113,7 @@ User confirms.
 2. **needs-design** creates `docs/features/product-browsing/design.adoc` v1.0.0 (`:source-spec-version: 1.0.0`)
    - During Phase 0, identifies technology decisions: framework choice, database choice
    - Invokes **needs-adr** to create ADR-0001 (TypeScript) and ADR-0002 (PostgreSQL)
-3. **needs-tasks** creates `docs/features/product-browsing/tasks.yaml` v2.0.0 (8 tasks, DAG with depends_on)
+3. **needs-tasks** creates `docs/features/product-browsing/tasks.yaml` v3.0.0 (8 tasks, DAG with depends_on)
 4. **needs-implementation** implements code following task DAG order (root tasks first, then dependent tasks in parallel)
 5. **Divergence check:** needs-implementation reports no divergences
 
@@ -122,7 +122,7 @@ User confirms.
 1. **needs-features** creates `docs/features/shopping-cart/spec.yaml` v1.0.0 (prefix: CART, 2 stories, 7 requirements). Schema validation passes.
 2. **needs-design** creates `docs/features/shopping-cart/design.adoc` v1.0.0
    - References existing ADRs, no new decisions needed
-3. **needs-tasks** creates `docs/features/shopping-cart/tasks.yaml` v2.0.0 (9 tasks, DAG with depends_on)
+3. **needs-tasks** creates `docs/features/shopping-cart/tasks.yaml` v3.0.0 (9 tasks, DAG with depends_on)
 4. **needs-implementation** implements code following task DAG order
 5. **Divergence check:** needs-implementation reports 1 divergence:
 +
@@ -145,7 +145,7 @@ Orchestrator invokes **needs-design** (reconciliation mode) to update `design.ad
 2. **needs-design** creates `docs/features/checkout/design.adoc` v1.0.0
    - During Phase 0, identifies payment provider decision
    - Invokes **needs-adr** to create ADR-0003 (Stripe)
-3. **needs-tasks** creates `docs/features/checkout/tasks.yaml` v2.0.0 (7 tasks, DAG with depends_on)
+3. **needs-tasks** creates `docs/features/checkout/tasks.yaml` v3.0.0 (7 tasks, DAG with depends_on)
 4. **needs-implementation** implements code following task DAG order
 5. **Divergence check:** needs-implementation reports no divergences
 

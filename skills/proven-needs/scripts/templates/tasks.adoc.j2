@@ -1,7 +1,9 @@
 = Implementation Tasks: {{ doc.feature }}
 :version: {{ doc.version }}
 :status: {{ doc.status }}
+{% if doc.source_spec_version %}
 :source-spec-version: {{ doc.source_spec_version }}
+{% endif %}
 {% if doc.source_design_version %}
 :source-design-version: {{ doc.source_design_version }}
 {% endif %}

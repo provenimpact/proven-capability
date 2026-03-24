@@ -65,8 +65,8 @@ flowchart LR
         DESIGN --> TASKS
         FEATURES -.->|fallback| TASKS
         TASKS --> IMPL
-        FEATURES --> TESTS
-        TESTS -.->|TDD gate| IMPL
+        TASKS -.->|per-task if TDD| TESTS
+        TESTS -.->|task gate| IMPL
         DESIGN -.->|fallback| IMPL
     end
 
@@ -98,10 +98,10 @@ flowchart LR
 **Key relationships:**
 - **Solid arrows** = primary dependency (required upstream artifact)
 - **Dotted arrows** = optional or fallback paths
-- `needs-features` is always invoked -- every feature gets a `spec.yaml` with user stories + EARS requirements
+- `needs-features` is included when the transition needs a feature spec; some intents may intentionally skip spec creation
 - `needs-design` requires `spec.yaml`
 - `needs-tasks` prefers design but can derive tasks directly from `spec.yaml`
-- `needs-tests` is opt-in (requires TDD ADR) -- derives executable tests from `spec.yaml`
+- `needs-tests` is opt-in (requires TDD ADR) -- derives executable tests per task from `spec.yaml`
 - `needs-implementation` follows the execution inputs chosen in the transition plan: task DAG when `tasks.yaml` exists, design-guided fallback from `design.adoc`, or spec-guided fallback from `spec.yaml`
 - `needs-design` can trigger `needs-adr` creation for technology decisions
 
@@ -140,7 +140,7 @@ flowchart LR
 | `needs-features` | `constraints.yaml` | `spec.yaml` |
 | `needs-design` | `spec.yaml`, ADRs, `constraints.yaml`, `architecture.adoc` | `design.adoc`, `data-model.adoc`, `contracts/` |
 | `needs-tasks` | `design.adoc` (or `spec.yaml` as fallback), `constraints.yaml` | `tasks.yaml` |
-| `needs-tests` | `spec.yaml`, `design.adoc`, `constraints.yaml` | test files |
+| `needs-tests` | `spec.yaml`, `design.adoc`, `tasks.yaml`, existing test files, `constraints.yaml` | test files |
 | `needs-implementation` | execution inputs chosen in the transition plan (`tasks.yaml`, `design.adoc`, and/or `spec.yaml`), `constraints.yaml`, ADRs | source code |
 | `needs-adr` | existing ADRs | `docs/adrs/*.yaml`, `index.yaml` |
 | `needs-architecture` | all feature designs, ADRs, `docs/constraints.yaml`, codebase | `docs/architecture.adoc` |
@@ -159,7 +159,7 @@ I want users to be able to browse products, add them to cart, and checkout
 The orchestrator will:
 1. Decompose this into feature packages (product-browsing, shopping-cart, checkout)
 2. Ask you to confirm the grouping
-3. For each feature: create spec.yaml, design, plan tasks, implement
+3. For each feature: invoke only the capabilities needed for that intent (for example spec, design, task planning, implementation)
 4. Resolve any design divergences (user decides: update design or fix code)
 5. Record technology decisions as ADRs along the way
 6. Update the architecture document when all features are implemented
@@ -303,21 +303,24 @@ flowchart TD
 flowchart LR
     S["spec.yaml<br/><i>version: SemVer</i>"]
     D["design.adoc<br/>:source-spec-version:"]
-    T["tasks.yaml<br/>source_design_version<br/>source_spec_version"]
+    T["tasks.yaml<br/>source_design_version?<br/>source_spec_version?"]
 
     S -->|tracked by| D
-    D -->|tracked by| T
+    D -.->|tracked by when design used| T
+    S -.->|tracked by when spec used| T
 
     style S fill:#4CAF50,color:#fff,stroke:none
     style D fill:#FF9800,color:#fff,stroke:none
     style T fill:#9C27B0,color:#fff,stroke:none
 ```
 
-When `spec.yaml` changes, the design may become stale. When the design changes, tasks become stale. The orchestrator detects these cascades during the Evaluate phase and includes sync steps in the transition plan.
+When `spec.yaml` changes, the design may become stale. Task lists record conditional provenance: `source_design_version` when design informed planning, `source_spec_version` when spec informed planning, or both when both artifacts were used. At least one lineage field must be present. The orchestrator detects staleness only against the upstream artifacts actually recorded in `tasks.yaml`.
 
 ## Validation
 
 All structured artifacts are machine-validated with JSON schemas and consistency scripts:
+
+Note: the top-level `version` field inside this repository's schema files is a repo-specific metadata extension used by the validation scripts.
 
 | Artifact | Schema | Validation Script |
 |---|---|---|

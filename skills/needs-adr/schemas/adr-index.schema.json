@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://provenimpact.github.io/proven-needs/schemas/adr-index.schema.json",
   "title": "ADR Index",
-  "description": "Index of all architecture decision records in the project. Provides a summary view of all decisions.",
+  "description": "Index of all architecture decision records in the project. Provides a summary view of all decisions. The top-level 'version' field is a repository-specific schema metadata extension consumed by the validation scripts.",
   "version": "1.0.0",
   "type": "object",
   "required": ["schema_version", "version", "last_updated", "decisions"],
