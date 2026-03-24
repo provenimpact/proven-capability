@@ -191,7 +191,7 @@ Self-contained units of work at `docs/features/<slug>/`:
 docs/features/shopping-cart/
   spec.yaml            # WHY + WHAT: user stories + EARS requirements
   design.adoc          # HOW: implementation blueprint
-  tasks.yaml           # WORK: phased task breakdown
+  tasks.yaml           # WORK: task graph (DAG with explicit depends_on)
 ```
 
 The `spec.yaml` file combines user stories and EARS requirements in a single schema-validated artifact:
@@ -243,8 +243,8 @@ Append-only audit trail at `docs/state-log.adoc` recording every transition: wha
 |---|---|---|
 | Features | `needs-features` | Create user stories + EARS requirements (spec.yaml) |
 | Design | `needs-design` | Create implementation blueprint (HOW) |
-| Tasks | `needs-tasks` | Break design into phased coding units |
-| Tests | `needs-tests` | Derive executable tests from requirements (opt-in) |
+| Tasks | `needs-tasks` | Break design into task graph (DAG with depends_on) |
+| Tests | `needs-tests` | Derive tests for a single task before implementation (opt-in) |
 | Implementation | `needs-implementation` | Write and verify code |
 
 ### Project-Wide (operate at the project level)
@@ -290,7 +290,7 @@ flowchart TD
 | Constraints | `docs/constraints.yaml` | Stable, changes rarely |
 | Feature spec | `docs/features/<slug>/spec.yaml` | Living, schema-validated |
 | Design | `docs/features/<slug>/design.adoc` | Living, synced with spec.yaml |
-| Tasks | `docs/features/<slug>/tasks.yaml` | Ephemeral -- disposable once implementation verified |
+| Tasks | `docs/features/<slug>/tasks.yaml` | Ephemeral -- task graph disposable once implementation verified |
 | Tests | project test directories | Living (opt-in, requires TDD ADR) |
 | ADRs | `docs/adrs/NNNN-title.yaml` | Permanent, append-only |
 | Architecture | `docs/architecture.adoc` | Living, reflects current system |

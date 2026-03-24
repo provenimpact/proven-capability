@@ -2,10 +2,12 @@
 """
 Validates implementation task YAML files against:
 1. JSON Schema (structure and types)
-2. Task ID uniqueness (no duplicates across phases)
+2. Task ID uniqueness
 3. Sequential task IDs (TASK-001, TASK-002, ... without gaps)
-4. Requirement coverage (cross-reference against spec.yaml if provided)
-5. Story coverage (every story referenced exists in spec.yaml if provided)
+4. Dependency references (all depends_on targets exist)
+5. No circular dependencies (DAG validation)
+6. Requirement coverage (cross-reference against spec.yaml if provided)
+7. Story coverage (every story referenced exists in spec.yaml if provided)
 
 Usage:
   python skills/needs-tasks/scripts/validate-tasks.py docs/features/shopping-cart/tasks.yaml
@@ -25,6 +27,7 @@ Exit codes:
 import json
 import re
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 try:
@@ -129,6 +132,44 @@ def load_spec_ids(
     return req_ids, story_ids
 
 
+def detect_circular_dependencies(tasks: list[dict]) -> list[str]:
+    """Detect circular dependencies using DFS. Returns list of error messages."""
+    errors = []
+    task_map = {t["id"]: t for t in tasks}
+    task_ids = set(task_map.keys())
+
+    for task in tasks:
+        visited = set()
+        path = []
+
+        def dfs(current_id: str) -> bool:
+            if current_id in path:
+                cycle_start = path.index(current_id)
+                cycle = path[cycle_start:] + [current_id]
+                return True
+            if current_id in visited:
+                return False
+
+            visited.add(current_id)
+            path.append(current_id)
+
+            deps = task_map.get(current_id, {}).get("depends_on", [])
+            for dep in deps:
+                if dep not in task_ids:
+                    continue
+                if dfs(dep):
+                    return True
+
+            path.pop()
+            return False
+
+        if dfs(task["id"]):
+            errors.append(f"Circular dependency detected involving {task['id']}")
+            break
+
+    return errors
+
+
 def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
     errors = []
     label = str(file_path)
@@ -148,27 +189,20 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
 
     errors.extend(check_schema_version(doc, label))
 
-    phases = doc["phases"]
+    tasks = doc["tasks"]
 
-    all_tasks = []
-    for phase in phases:
-        for task in phase["tasks"]:
-            all_tasks.append(task)
-
-    # Task ID uniqueness
     task_ids = set()
-    for task in all_tasks:
+    for task in tasks:
         if task["id"] in task_ids:
             errors.append(f"{label}: duplicate task ID: {task['id']}")
         task_ids.add(task["id"])
 
-    # Sequential task IDs
-    task_nums = [int(t["id"].replace("TASK-", "")) for t in all_tasks]
+    task_nums = [int(t["id"].replace("TASK-", "")) for t in tasks]
     for i, num in enumerate(task_nums):
         if num != i + 1:
             errors.append(
                 f"{label}: task ID gap or out of order: "
-                f"expected TASK-{i + 1:03d} but found {all_tasks[i]['id']}"
+                f"expected TASK-{i + 1:03d} but found {tasks[i]['id']}"
             )
             break
 
@@ -176,26 +210,40 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
         if task_nums[i] <= task_nums[i - 1]:
             errors.append(
                 f"{label}: task IDs not in ascending order: "
-                f"{all_tasks[i - 1]['id']} followed by {all_tasks[i]['id']}"
+                f"{tasks[i - 1]['id']} followed by {tasks[i]['id']}"
             )
             break
 
-    # Status consistency
+    all_deps = set()
+    for task in tasks:
+        deps = task.get("depends_on", [])
+        for dep in deps:
+            all_deps.add(dep)
+
+    unknown_deps = all_deps - task_ids
+    for dep in unknown_deps:
+        errors.append(f"{label}: depends_on references unknown task: {dep}")
+
+    errors.extend(detect_circular_dependencies(tasks))
+
+    root_tasks = [t for t in tasks if not t.get("depends_on", [])]
+    if not root_tasks and tasks:
+        errors.append(f"{label}: no root tasks found (every task has dependencies)")
+
     if doc["status"] == "Implemented":
-        not_done = [t["id"] for t in all_tasks if not t.get("done", False)]
+        not_done = [t["id"] for t in tasks if not t.get("done", False)]
         if not_done:
             errors.append(
                 f"{label}: status is 'Implemented' but {len(not_done)} task(s) "
                 f"not marked done: {', '.join(not_done)}"
             )
 
-    # Cross-reference against spec.yaml
     spec_data = load_spec_ids(file_path, explicit_spec)
     if spec_data:
         spec_req_ids, spec_story_ids = spec_data
 
         task_req_ids = set()
-        for task in all_tasks:
+        for task in tasks:
             task_req_ids.update(task.get("requirements", []))
 
         unknown_reqs = task_req_ids - spec_req_ids
@@ -213,7 +261,7 @@ def validate_file(file_path: Path, explicit_spec: Path | None) -> list[str]:
             )
 
         task_story_ids = set()
-        for task in all_tasks:
+        for task in tasks:
             task_story_ids.update(task.get("stories", []))
 
         unknown_stories = task_story_ids - spec_story_ids
@@ -242,13 +290,9 @@ def main():
 
         if not errors:
             doc = yaml.safe_load(file_path.read_text())
-            task_count = sum(len(p["tasks"]) for p in doc["phases"])
-            done_count = sum(
-                1 for p in doc["phases"] for t in p["tasks"] if t.get("done", False)
-            )
-            print(
-                f"PASS  {file_path} ({done_count}/{task_count} done, {len(doc['phases'])} phases)"
-            )
+            task_count = len(doc["tasks"])
+            done_count = sum(1 for t in doc["tasks"] if t.get("done", False))
+            print(f"PASS  {file_path} ({done_count}/{task_count} done)")
         else:
             print(f"FAIL  {file_path}")
             for err in errors:

@@ -99,8 +99,8 @@ These operate within a single feature package:
 |---|---|---|
 | Features | `needs-features` | Create/update user stories + EARS requirements (spec.yaml) |
 | Design | `needs-design` | Create implementation blueprint for a feature |
-| Tasks | `needs-tasks` | Break design into phased implementation units |
-| Tests | `needs-tests` | Derive executable tests from requirements (opt-in, requires ADR) |
+| Tasks | `needs-tasks` | Break design into task graph (DAG with depends_on) |
+| Tests | `needs-tests` | Derive tests for a single task before implementation (opt-in, requires ADR) |
 | Implementation | `needs-implementation` | Write and verify code for a feature |
 
 ### Project-wide capabilities
@@ -378,7 +378,7 @@ Build a dependency graph of capability invocations. The graph is derived, not ha
 
 1. Determine which artifacts need creating or updating
 2. Order capabilities by dependency: features -> design -> tasks -> implementation. `needs-features` is always invoked -- every feature gets a spec.yaml. The spec is the contract between intent (WHY/WHAT) and design (HOW).
-3. If TDD is adopted (ADR exists), include `needs-tests` after `needs-features` (before or alongside `needs-implementation`)
+3. If TDD is adopted (ADR exists), `needs-tests` is invoked per-task, just before that task enters implementation. Tests are created on-demand as the task graph is traversed, not in bulk upfront.
 4. Skip capabilities whose artifacts are already current and satisfy the desired state
 5. Mark which steps can run in parallel across features (independent features can be processed concurrently)
 
@@ -399,12 +399,14 @@ Transition plan to achieve "Users can reset password via SMS":
   Feature: user-authentication/ (extend existing)
   1. needs-features: Add SMS password reset stories + requirements to spec.yaml
   2. needs-design: Update design for SMS flow
-  3. needs-tasks: Create implementation tasks
+  3. needs-tasks: Create task graph (DAG with depends_on)
   4. needs-implementation: Implement code changes
+     - For each task: invoke needs-tests (if TDD) just before implementation
+  5. needs-architecture: Update after implementation (post-transition)
 
   Skipping: needs-adr (no new technology decisions)
   Skipping: needs-tests (TDD not adopted)
-  Post-implementation: needs-architecture (update after implementation)
+  Post-transition: needs-architecture (update after all features implemented)
 
   Risk: HIGH (new feature behavior, code changes)
   Estimated artifacts affected: spec.yaml, design.adoc, tasks.yaml, code
@@ -439,6 +441,29 @@ Invoke capabilities in the derived order by loading each capability skill. For e
 - Verify the artifact was created/updated correctly
 - Check that no constraints were violated
 - Update the state model
+
+**Task graph execution (when `needs-tasks` created a DAG):**
+
+When `needs-tasks` produces a task graph with `depends_on` edges:
+
+1. Perform topological sort to determine safe execution order
+2. Identify root tasks (no dependencies) -- these can start immediately
+3. When TDD is adopted, for each task ready to execute:
+   - If the task's requirements have no tests yet, invoke `needs-tests` for this specific task
+   - Then invoke `needs-implementation` for this task
+4. A task is ready when all its `depends_on` tasks are complete
+5. Ready tasks with no dependencies can run in parallel
+
+```
+Task execution order (example):
+  TASK-001 (root)  --> TASK-002 --> TASK-006
+                     --> TASK-003 --> TASK-007
+                     --> TASK-004 --> TASK-008
+                     --> TASK-005 --> TASK-009
+  
+  Execution: TASK-001 first (root), then TASK-002 through TASK-005 in parallel,
+  then TASK-006 through TASK-009 in parallel (after their dependencies complete)
+```
 
 ### Transition progress tracking
 
@@ -500,8 +525,22 @@ After all capabilities in the transition have executed:
 5. Run `python skills/needs-features/scripts/validate-specs.py` on any modified spec.yaml files
 
 **If desired state achieved:**
-- Update the existing `In Progress` entry in `docs/state-log.adoc`: set `:result: Achieved`, fill in `:capabilities-invoked:`, `:constraints-checked:`, and `:artifacts-modified:`
-- Report success to user
+- Present validation summary to user and request approval:
+  ```
+  Validation complete. The desired state appears to be achieved:
+    - All capabilities executed successfully
+    - Constraints verified (all pass)
+    - Build passing
+    - Tests passing (if TDD adopted)
+    
+  Approving this transition will record :result: Achieved in the state log.
+  
+  Do you approve this transition as achieved?
+    1. Yes -- record Achieved
+    2. No -- investigate issues
+  ```
+- **If user approves:** Update the existing `In Progress` entry in `docs/state-log.adoc`: set `:result: Achieved`, fill in `:capabilities-invoked:`, `:constraints-checked:`, and `:artifacts-modified:`, report success to user
+- **If user rejects:** Identify what's missing, propose additional steps or report what went wrong, do not update the entry to `:result: Achieved`
 
 **If desired state NOT achieved:**
 - Identify what's missing

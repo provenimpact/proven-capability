@@ -1,6 +1,6 @@
 ---
 name: needs-tasks
-description: Create phased implementation task lists for a feature in schema-validated YAML format. Use when the proven-needs orchestrator determines that a feature needs a task breakdown. Operates within a single feature package at docs/features/<slug>/. Tasks define the WORK -- discrete coding units organized into sequential phases with parallelism markers and full traceability back to the feature's spec.yaml requirements.
+description: Create task graphs for a feature in schema-validated YAML format. Use when the proven-needs orchestrator determines that a feature needs a task breakdown. Operates within a single feature package at docs/features/<slug>/. Tasks form a DAG where each node has explicit depends_on edges to its prerequisites. Full traceability back to the feature's spec.yaml requirements.
 ---
 
 ## Prerequisites
@@ -37,7 +37,8 @@ Read `docs/features/<slug>/spec.yaml`. Extract:
 
 If `docs/features/<slug>/tasks.yaml` exists:
 - Read `version`, `status`, `source_design_version`, `source_spec_version`
-- Read all phases, tasks, done states, and metadata
+- Read all tasks, done states, and dependency structure
+- Perform topological analysis to identify root tasks and execution order
 
 ### 4. Read constraints
 
@@ -54,7 +55,7 @@ Return to the orchestrator:
 Feature: <slug>
 Design: {exists: true/false, version: "X.Y.Z", status: "Current/Stale"}
 Spec: {exists: true, version: "X.Y.Z", stories: N, requirements: N}
-Tasks: {exists: true/false, version: "X.Y.Z", status: "Current/Stale/Implemented", progress: "N/M done"}
+Tasks: {exists: true/false, version: "X.Y.Z", status: "Current/Stale/Implemented", progress: "N/M done", root_tasks: N}
 ```
 
 ## Evaluate
@@ -113,7 +114,7 @@ When a design document exists, walk through it systematically to identify discre
 - Which design components are involved
 - Which requirement IDs it satisfies
 - Which stories it contributes to
-- Whether it depends on other tasks (determines phase placement and parallelism)
+- Explicit dependencies via `depends_on` (task IDs that must complete first)
 
 ### Requirement-driven task derivation (when no design exists)
 
@@ -126,30 +127,27 @@ When `source_design_version` is `n/a`, derive tasks directly from spec.yaml requ
    - Which stories it implements
    - Which requirement IDs it satisfies
    - `components` is omitted since there is no design to reference
-4. Use story groupings to inform phase organization
+4. Use story groupings and requirement dependencies to inform task dependency structure
 
-### Organize into phases
+### Build the task DAG
 
-Group tasks into sequential phases based on implementation dependencies.
+Tasks form a Directed Acyclic Graph (DAG). For each task:
 
-**Typical phase progression** (adapt to the project):
-
-| Phase | Purpose | Examples |
-|---|---|---|
-| Foundation | Infrastructure, data model, configuration | Database setup, entity creation, project scaffolding |
-| Core Logic | Business logic, services, core modules | Service implementations, domain logic |
-| Interface Layer | APIs, UI components, CLI commands | Endpoint handlers, React components, command parsers |
-| Integration | External services, cross-cutting concerns | Payment providers, email services, auth |
-| Polish | Error handling, edge cases, notifications | Error responses, validation messages, notification triggers |
-
-Within each phase, mark every task:
-- **`parallel`** -- can be implemented concurrently. No dependency on other tasks within the phase.
-- **`sequential`** -- must be completed before subsequent sequential tasks in the same phase.
+1. Identify which other tasks must complete before it can start
+2. Record these as `depends_on: [TASK-ID, ...]`
+3. Tasks with no dependencies are root tasks -- they can start immediately
 
 **Guidelines:**
-- A task belongs in the earliest phase where all its dependencies are satisfied
-- Prefer more parallel tasks over fewer sequential ones
-- If a phase would contain only one task, consider merging with an adjacent phase
+- A task depends on another when it needs the other's output (code, data model, API contract)
+- A task belongs at the node where all its dependencies are satisfied
+- Prefer granular dependencies over coarse ones (allows maximum parallelism)
+- Ensure the graph has at least one root task (no dependencies)
+- Verify no circular dependencies exist
+
+**Typical dependency patterns:**
+- Entity/model creation -> tasks that use the entity
+- Service implementation -> tasks for API endpoints that call the service
+- Frontend state management -> tasks for UI components that use the state
 
 ### Write task list
 
@@ -158,7 +156,7 @@ Create `docs/features/<slug>/tasks.yaml`:
 ```yaml
 # yaml-language-server: $schema=../../../skills/needs-tasks/schemas/tasks.schema.json
 
-schema_version: "1.0.0"
+schema_version: "2.0.0"
 feature: <slug>
 version: "1.0.0"
 status: Current
@@ -167,20 +165,26 @@ source_spec_version: "<spec.yaml version>"
 last_updated: "YYYY-MM-DD"
 
 overview: >-
-  <Brief summary: what is being implemented, number of phases, total tasks.>
+  <Brief summary: what is being implemented, total tasks, dependency structure.>
 
-phases:
-  - name: <Phase Name>
-    description: <One-sentence phase purpose.>
-    tasks:
-      - id: TASK-001
-        title: <Task title>
-        execution: parallel
-        components: [<design components involved>]
-        stories: [US-001]
-        requirements: [PREFIX-001, PREFIX-002]
-        description: >-
-          <What to implement and key details>
+tasks:
+  - id: TASK-001
+    title: <Task title>
+    depends_on: []
+    components: [<design components involved>]
+    stories: [US-001]
+    requirements: [PREFIX-001, PREFIX-002]
+    description: >-
+      <What to implement and key details>
+
+  - id: TASK-002
+    title: <Task title>
+    depends_on: [TASK-001]
+    components: [<design components involved>]
+    stories: [US-001]
+    requirements: [PREFIX-003]
+    description: >-
+      <What to implement and key details>
 ```
 
 **`status` values:**
@@ -216,14 +220,15 @@ Before finalizing, verify:
 - Every requirement ID from spec.yaml appears in at least one task
 - Every story is covered by the aggregate tasks
 - Every design section has corresponding tasks (skip if `source_design_version` is `n/a`)
-- No circular dependencies between phases
-- Phase ordering respects actual implementation dependencies
+- The graph has at least one root task (no dependencies)
+- No circular dependencies exist
+- All `depends_on` references point to valid task IDs
 - Each task is a discrete, implementable coding unit
-- Parallel/sequential markers are correct
+- Dependency structure reflects actual implementation order
 - Source versions are recorded correctly
 - Quality constraints from `docs/constraints.yaml` are addressed (e.g., testing tasks exist if the project uses TDD per ADR decision)
 - The validation script passes: `python skills/needs-tasks/scripts/validate-tasks.py docs/features/<slug>/tasks.yaml`
 
 ## Reference
 
-See `references/example.yaml` for a complete example showing how a feature design becomes a phased task list with traceability.
+See `references/example.yaml` for a complete example showing how a feature design becomes a task graph with traceability.
