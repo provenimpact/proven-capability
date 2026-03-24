@@ -1,16 +1,16 @@
 = Implementation Example
 
-This file walks through implementing Phase 1 (Foundation) of the shopping-cart feature task list. It demonstrates the per-phase cycle: build todo list, implement tasks, verify, commit, ask to continue.
+This file walks through implementing the ready tasks for the shopping-cart feature task graph. It demonstrates the DAG cycle: identify ready tasks, implement them, verify, commit, then continue with the next ready set.
 
 == Context
 
 Given:
 
-* `docs/features/shopping-cart/tasks.yaml` at version `1.0.0` with 3 phases, 9 tasks
+* `docs/features/shopping-cart/tasks.yaml` at version `1.0.0` with 9 tasks in a DAG
 * `docs/features/shopping-cart/design.adoc` at version `1.0.0` with system design for cart management
 * `docs/features/shopping-cart/data-model.adoc` at version `1.0.0` with entities: Cart, CartItem
 * `docs/features/shopping-cart/spec.yaml` at version `1.0.0` with stories US-001, US-002 and requirements CART-001 through CART-007
-* No tasks are done yet -- starting from Phase 1
+* No tasks are done yet -- starting from the root task set
 * TDD not adopted (no tests ADR)
 
 == Step 1: Read Inputs
@@ -25,22 +25,27 @@ Read `docs/features/shopping-cart/spec.yaml` -- extract requirement texts and ve
 
 == Step 2: Check for Existing Progress
 
-No tasks are done. Start from Phase 1.
+No tasks are done.
 
-== Step 3: Build Phase Todo List (Phase 1: Foundation)
+Dependency analysis shows:
 
-Parse Phase 1 from the feature's tasks.yaml. It contains 1 task:
+* Root tasks: `TASK-001`
+* Ready tasks: `TASK-001`
+
+== Step 3: Build Ready-Task List
+
+Parse all tasks whose dependencies are already satisfied. The first ready set contains 1 task:
 
 ....
 TodoWrite:
 - TASK-001: Create Cart and CartItem entities and migrations [pending]
 ....
 
-Phase 1 targets requirements: CART-001, CART-004 (from TASK-001's `Requirements::` field).
+This ready set targets requirements: CART-001, CART-004.
 
-== Step 4: Implement Current Phase
+== Step 4: Implement Ready Tasks
 
-=== TASK-001: Create Cart and CartItem entities and migrations [sequential]
+=== TASK-001: Create Cart and CartItem entities and migrations
 
 Mark TASK-001 as `in_progress` in the todo list.
 
@@ -74,7 +79,7 @@ CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
 
 Mark TASK-001 as `completed` in the todo list. Set `done: true` on TASK-001 in `docs/features/shopping-cart/tasks.yaml`.
 
-== Step 5: Verify Phase
+== Step 5: Verify Task Batch
 
 Detect verification commands from `package.json`:
 
@@ -87,34 +92,32 @@ npm test          # Existing tests -- passes (no regressions)
 
 Build, lint, typecheck, and regression tests all pass. Proceed to commit.
 
-== Step 6: Commit Phase
+== Step 6: Commit Task Batch
 
 Stage and commit:
 
 ....
 git add .
-git commit -m "feat(shopping-cart): implement phase 1 -- Foundation
+git commit -m "feat(shopping-cart): implement task batch
 
 - TASK-001: Create Cart and CartItem entities and migrations"
 ....
 
 Commit succeeds.
 
-== Step 7: Ask to Continue
+== Step 7: Advance the DAG
 
-Present question to user:
+Recompute the ready set after TASK-001 completes:
 
 ....
-Question: Phase 1 (Foundation) is complete. 1 task implemented and verified.
-  Continue?
-Options:
-- Continue to Phase 2: Backend
-- Stop here
+Ready tasks:
+- TASK-002: Implement CartService with business logic
+- TASK-003: Implement POST /api/cart/items endpoint
+- TASK-004: Implement PATCH /api/cart/items/:id endpoint
+- TASK-005: Implement DELETE /api/cart/items/:id endpoint
 ....
 
-User selects "Continue to Phase 2: Backend".
-
-Clear the todo list and create a new one with Phase 2 tasks:
+Create a new tracking list for the next batch:
 
 ....
 TodoWrite:
@@ -124,42 +127,45 @@ TodoWrite:
 - TASK-005: Implement DELETE /api/cart/items/:id endpoint [pending]
 ....
 
-Phase 2 targets requirements: CART-001, CART-002, CART-003, CART-006, CART-007.
+Loop back to Step 4 for the next ready set.
 
-Loop back to Step 3 for Phase 2.
-
-== Updated tasks.yaml After Phase 1
+== Updated tasks.yaml After the First Batch
 
 ....
-phases:
-  - name: Foundation
-    description: Create database entities and migrations for cart persistence.
-    tasks:
-      - id: TASK-001
-        title: Create Cart and CartItem entities and migrations
-        done: true    # <-- marked done after Phase 1
-        execution: sequential
-        components: [Database, Cart model, CartItem model]
-        stories: [US-001, US-002]
-        requirements: [CART-001, CART-004]
-        description: Create Cart table and CartItem table...
+tasks:
+  - id: TASK-001
+    title: Create Cart and CartItem entities and migrations
+    done: true
+    depends_on: []
+    components: [Database, Cart model, CartItem model]
+    stories: [US-001, US-002]
+    requirements: [CART-001, CART-004]
+    description: Create Cart table and CartItem table...
 
-  - name: Backend
-    description: Implement the CartService and API route handlers.
-    tasks:
-      # ...tasks still not done...
+  - id: TASK-002
+    title: Implement CartService with business logic
+    depends_on: [TASK-001]
+    components: [CartService]
+    stories: [US-001, US-002]
+    requirements: [CART-003, CART-006, CART-007]
+    description: Create CartService class in the service layer...
+
+  - id: TASK-003
+    title: Implement POST /api/cart/items endpoint
+    depends_on: [TASK-001]
+    # ...still not done...
 ....
 
-== Final State (After All Phases Complete)
+== Final State (After All Tasks Complete)
 
-When the last phase is committed:
+When the last ready set is committed:
 
 1. Verify implementation against spec.yaml: check that all requirements (CART-001 through CART-007) have been addressed by reviewing the code against each requirement's verification description.
 
 2. Set the task list status to `Implemented`:
 +
 ....
-docs/features/shopping-cart/tasks.yaml  -> status: Implemented
+docs/features/shopping-cart/tasks.yaml -> status: Implemented
 ....
 
 3. Detect design divergences -- compare what was built against the design. For each divergence, analyze both resolution directions (update design vs. fix code) and report to the orchestrator:

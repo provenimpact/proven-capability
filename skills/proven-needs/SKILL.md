@@ -64,7 +64,7 @@ A self-contained unit of work scoped to one feature. Lives in `docs/features/<sl
 docs/features/<slug>/
   spec.yaml            # WHY + WHAT: user stories + EARS requirements (schema-validated)
   design.adoc          # HOW: implementation blueprint
-  tasks.yaml           # WORK: phased implementation breakdown
+  tasks.yaml           # WORK: task graph (DAG with explicit depends_on)
 ```
 
 The `spec.yaml` file combines user stories and EARS requirements in one artifact. Each story contains the requirements that resolve it. The file is validated by a JSON schema (`skills/needs-features/schemas/feature-spec.schema.json`) and a consistency checking script (`skills/needs-features/scripts/validate-specs.py`).
@@ -138,7 +138,7 @@ When this skill is invoked, immediately build the current state model:
 4. **`docs/architecture.adoc`** -- check existence, read `:version:` if present.
 
 5. **`docs/state-log.adoc`** -- check existence, read recent transitions for context. Pay particular attention to:
-   - **`:result: In Progress`** -- the prior session started a transition but ended unexpectedly (crash, context exhaustion, tool failure) without cleanly recording a result. The entry contains the intent and plan but `:capabilities-invoked:` may be empty or incomplete. Propose resuming the transition or marking it as `:result: Failed` before starting new work.
+   - **`:result: In Progress`** -- the prior session started a transition but ended unexpectedly (crash, context exhaustion, tool failure) without cleanly recording a result. The entry contains the intent and plan but `:capabilities-planned:` and `:capabilities-invoked:` may show the gap between intended and completed work. Propose resuming the transition or marking it as `:result: Failed` before starting new work.
    - **`:result: Partial`** -- the user explicitly stopped a transition mid-way. The entry lists capabilities completed vs. remaining. Propose completing the remaining capabilities before starting new work.
 
 #### 1.2 Analyze codebase
@@ -337,7 +337,7 @@ For each feature in the transition plan, check:
 Does the desired state require artifacts that don't exist yet? For each involved capability:
 - `needs-design` requires spec.yaml -> does it exist?
 - `needs-tasks` works best with design -> is design available?
-- `needs-implementation` requires at minimum a design -> does one exist?
+- `needs-implementation` requires at least one declared execution input (`tasks.yaml`, `design.adoc`, or `spec.yaml`) -> which artifact will drive implementation?
 - `needs-tests` requires spec.yaml -> does it exist? Is TDD adopted (ADR)?
 
 If preconditions are unmet, the orchestrator can satisfy them as part of the transition (by invoking earlier capabilities first). This is not a pipeline -- the orchestrator dynamically determines what's needed.
@@ -377,7 +377,7 @@ Build a dependency graph of capability invocations. The graph is derived, not ha
 **For each feature in scope:**
 
 1. Determine which artifacts need creating or updating
-2. Order capabilities by dependency: features -> design -> tasks -> implementation. `needs-features` is always invoked -- every feature gets a spec.yaml. The spec is the contract between intent (WHY/WHAT) and design (HOW).
+2. Decide which capabilities are required for this intent before execution begins, then order them by dependency. Common paths include features -> design -> tasks -> implementation, features -> design -> implementation, or features -> implementation when the intent intentionally skips intermediate artifacts. `needs-features` is included whenever the transition needs a feature spec, but it is not forced for every transition.
 3. If TDD is adopted (ADR exists), `needs-tests` is invoked per-task, just before that task enters implementation. Tests are created on-demand as the task graph is traversed, not in bulk upfront.
 4. Skip capabilities whose artifacts are already current and satisfy the desired state
 5. Mark which steps can run in parallel across features (independent features can be processed concurrently)
@@ -400,9 +400,11 @@ Transition plan to achieve "Users can reset password via SMS":
   1. needs-features: Add SMS password reset stories + requirements to spec.yaml
   2. needs-design: Update design for SMS flow
   3. needs-tasks: Create task graph (DAG with depends_on)
-  4. needs-implementation: Implement code changes
-     - For each task: invoke needs-tests (if TDD) just before implementation
-  5. needs-architecture: Update after implementation (post-transition)
+   4. needs-implementation: Implement code changes
+      - For each task: invoke needs-tests (if TDD) just before implementation
+   5. needs-architecture: Update after implementation (post-transition)
+
+   capabilities-planned: needs-features, needs-design, needs-tasks, needs-implementation, needs-architecture
 
   Skipping: needs-adr (no new technology decisions)
   Skipping: needs-tests (TDD not adopted)
@@ -429,7 +431,7 @@ Store the user's choice for the duration of this transition. Default to **Intera
 
 ### 5. Execute Transition
 
-**Before invoking the first capability**, append an `In Progress` entry to `docs/state-log.adoc` with the fields known so far: `:date:`, `:intent:`, `:type:`, `:risk:`, `:features:`, `:desired-state:`, `:prior-state:`, and `:result: In Progress`. Leave `:capabilities-invoked:`, `:constraints-checked:`, and `:artifacts-modified:` empty -- these are filled in when the transition completes or is stopped.
+**Before invoking the first capability**, append an `In Progress` entry to `docs/state-log.adoc` with the fields known so far: `:date:`, `:intent:`, `:type:`, `:risk:`, `:features:`, `:desired-state:`, `:prior-state:`, `:capabilities-planned:`, and `:result: In Progress`. Leave `:capabilities-invoked:`, `:constraints-checked:`, and `:artifacts-modified:` empty -- these are filled in when the transition completes or is stopped.
 
 Invoke capabilities in the derived order by loading each capability skill. For each capability:
 
@@ -476,7 +478,7 @@ Maintain an explicit checklist of all capabilities to invoke for this transition
 In both modes, the following rules apply:
 - **Do NOT skip capabilities in the plan.** Every capability in the derived transition plan must be invoked unless the user explicitly asks to stop.
 - **Do NOT treat `needs-implementation` as the final step.** Post-implementation capabilities (`needs-architecture`, design divergence resolution) are part of the plan and must execute.
-- If the user asks to stop mid-transition, update the existing `In Progress` entry in `docs/state-log.adoc`: set `:result: Partial`, fill in `:capabilities-invoked:` with capabilities completed so far, and add `:capabilities-remaining:` listing what was not yet invoked.
+- If the user asks to stop mid-transition, update the existing `In Progress` entry in `docs/state-log.adoc`: set `:result: Partial`, fill in `:capabilities-invoked:` with capabilities completed so far, and add `:capabilities-remaining:` listing what was planned but not yet invoked.
 
 **Design divergence resolution (after `needs-implementation` completes):**
 
@@ -655,6 +657,7 @@ A constraint violation blocks a transition unless the user explicitly chooses to
 :features: user-authentication (extended)
 :desired-state: SMS password reset is available alongside email reset
 :prior-state: user-authentication has email reset only (implemented)
+:capabilities-planned: needs-features, needs-design, needs-tasks, needs-implementation
 :capabilities-invoked: needs-features, needs-design, needs-tasks, needs-implementation
 :constraints-checked: Security (pass), Architecture (pass), Quality (pass)
 :result: Achieved
@@ -668,7 +671,7 @@ A constraint violation blocks a transition unless the user explicitly chooses to
 
 - Transitions are numbered sequentially (TRANSITION-001, TRANSITION-002, ...)
 - Newest transitions appear first (reverse chronological)
-- Entries are created at the start of execution with `:result: In Progress`, then updated exactly once with the final result
+- Entries are created at the start of execution with `:result: In Progress` and `:capabilities-planned:`, then updated with `:capabilities-invoked:` and the final result
 - `:result:` values: `In Progress`, `Achieved`, `Partial`, `Failed`
 
 ## Feature Package Conventions
@@ -716,7 +719,7 @@ stateDiagram-v2
 
 ### Format and dates
 
-Feature specifications use YAML (`.yaml`). Design and task artifacts use AsciiDoc (`.adoc`). Dates use `YYYY-MM-DD` format. Diagrams use Mermaid.
+Feature specifications use YAML (`.yaml`). Design artifacts use AsciiDoc (`.adoc`). Task artifacts use YAML (`.yaml`). Dates use `YYYY-MM-DD` format. Diagrams use Mermaid.
 
 ### Requirement syntax
 

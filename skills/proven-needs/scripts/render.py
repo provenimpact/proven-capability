@@ -15,7 +15,7 @@ Usage:
 
 Artifact type detection:
   - Has "stories" key           -> feature spec
-  - Has "phases" key            -> tasks
+  - Has "tasks" + "overview"    -> tasks
   - Has "categories" key        -> constraints
   - Has "decisions" key         -> ADR index
   - Has "context" + "decision"  -> individual ADR
@@ -49,7 +49,7 @@ def detect_type(doc: dict) -> str:
     """Detect artifact type from YAML content."""
     if "stories" in doc:
         return "spec"
-    if "phases" in doc:
+    if "tasks" in doc and "overview" in doc:
         return "tasks"
     if "categories" in doc:
         return "constraints"

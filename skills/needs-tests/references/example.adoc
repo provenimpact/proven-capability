@@ -107,26 +107,37 @@ describe("US-001: View Product Catalog", () => {
 For reference, the ADR that enables `needs-tests`:
 
 ....
-= ADR-0004: Adopt Test-Driven Development
-:status: Accepted
-:date: 2026-02-20
-:deciders: Team
+[source,yaml]
+----
+schema_version: "1.0.0"
+id: ADR-0004
+title: Adopt Test-Driven Development
+status: Accepted
+date: "2026-02-20"
+deciders: Team
 
-== Context
+context: >-
+  The project needs a testing strategy. Options considered: no automated tests,
+  test-after, and test-first / TDD derived from specs before implementation.
 
-The project needs a testing strategy. Options considered:
-1. No automated tests (manual QA only)
-2. Test-after (write tests after implementation)
-3. Test-first / TDD (derive tests from specs before implementation)
+decision: >-
+  Adopt TDD. Tests are derived from feature specifications (spec.yaml) before
+  implementation. The needs-tests capability generates test files from EARS
+  requirements.
 
-== Decision
+consequences:
+  easier:
+    - Tests serve as the acceptance gate for implementation
+    - Test coverage constraints in docs/constraints.yaml can be enforced consistently
+  harder:
+    - Each feature transition includes an additional test-derivation step
 
-Adopt TDD. Tests are derived from feature specifications (`spec.yaml`) before implementation. The `needs-tests` capability generates test files from EARS requirements.
-
-== Consequences
-
-- `needs-tests` is included in the feature pipeline (after `needs-features`, before or alongside `needs-implementation`)
-- Tests serve as the acceptance gate for implementation
-- Test coverage constraints in `docs/constraints.yaml` are enforced
-- Adds a step to each feature transition but increases confidence in correctness
+alternatives:
+  - name: No automated tests
+    reason_rejected: >-
+      Manual verification alone provides weaker regression protection.
+  - name: Test-after
+    reason_rejected: >-
+      Writing tests after implementation weakens the spec-driven workflow.
+----
 ....

@@ -86,7 +86,7 @@ Transition plan:
 For each feature (product-browsing, shopping-cart, checkout):
   1. needs-features: Create spec.yaml (stories + EARS requirements)
   2. needs-design: Create implementation design
-  3. needs-tasks: Create phased task breakdown
+  3. needs-tasks: Create task graph (DAG with depends_on)
   4. needs-implementation: Implement code changes
 
 Additionally:
@@ -94,6 +94,8 @@ Additionally:
   - needs-architecture: Document architecture (after all features implemented)
 
 Skipping: needs-tests (TDD not adopted)
+
+capabilities-planned: needs-features, needs-design, needs-tasks, needs-implementation, needs-adr, needs-architecture
 
 Risk: HIGH (new features, 3 feature packages, full lifecycle)
 Estimated: spec.yaml + design + tasks + code per feature
@@ -188,6 +190,7 @@ User approves.
 :features: product-browsing (new), shopping-cart (new), checkout (new)
 :desired-state: E-commerce site with product browsing, cart management, and checkout
 :prior-state: Empty project scaffold
+:capabilities-planned: needs-features, needs-design, needs-adr, needs-tasks, needs-implementation, needs-architecture
 :capabilities-invoked: needs-features, needs-design, needs-adr, needs-tasks, needs-implementation, needs-architecture
 :constraints-checked: Security (pass), Architecture (pass), Quality (pass), Licensing (pass)
 :result: Achieved
@@ -246,6 +249,7 @@ Build passing. Tests passing. No remaining vulnerabilities.
 :features: n/a (project-wide)
 :desired-state: Zero known vulnerabilities in dependency graph
 :prior-state: lodash@4.17.20 with HIGH CVE-2021-23337
+:capabilities-planned: needs-dependencies
 :capabilities-invoked: needs-dependencies
 :constraints-checked: Security (triggered -- resolved), Licensing (pass)
 :result: Achieved
@@ -297,6 +301,7 @@ Would you like to remediate now?
 :features: n/a (project-wide constraint)
 :desired-state: Rate limiting enforced on all endpoints
 :prior-state: No rate limiting
+:capabilities-planned: constraints update, needs-implementation (if remediated)
 :capabilities-invoked: (constraint update) + needs-implementation (if remediated)
 :constraints-checked: n/a (this IS a constraint addition)
 :result: Achieved

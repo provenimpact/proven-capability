@@ -2,7 +2,9 @@
 :version: {{ doc.version }}
 :status: {{ doc.status }}
 :source-spec-version: {{ doc.source_spec_version }}
-{% if doc.source_design_version %}:source-design-version: {{ doc.source_design_version }}{% endif %}
+{% if doc.source_design_version %}
+:source-design-version: {{ doc.source_design_version }}
+{% endif %}
 :last-updated: {{ doc.last_updated }}
 :toc:
 
@@ -10,14 +12,16 @@
 
 {{ doc.overview }}
 
-{% for phase in doc.phases %}
-== Phase {{ loop.index }}: {{ phase.name }}
+== Tasks
 
-{{ phase.description }}
-
-{% for task in phase.tasks %}
-* [{{ "x" if task.done is defined and task.done else " " }}] {{ task.id }}: {{ task.title }} [{{ task.execution }}]
+{% for task in doc.tasks %}
+* [{{ "x" if task.done is defined and task.done else " " }}] {{ task.id }}: {{ task.title }}
 +
+{% if task.depends_on is defined and task.depends_on %}
+Depends on:: {{ task.depends_on | join(", ") }}
+{% else %}
+Depends on:: none (root task)
+{% endif %}
 {% if task.components is defined and task.components %}
 Components:: {{ task.components | join(", ") }}
 {% endif %}
@@ -26,14 +30,12 @@ Requirements:: {{ task.requirements | join(", ") }}
 Description:: {{ task.description }}
 
 {% endfor %}
-{% endfor %}
 
 == Traceability
 
 {% set story_reqs = {} %}
 {% set story_tasks = {} %}
-{% for phase in doc.phases %}
-{% for task in phase.tasks %}
+{% for task in doc.tasks %}
 {% for sid in task.stories %}
 {% if sid not in story_reqs %}
 {% set _ = story_reqs.update({sid: []}) %}
@@ -47,7 +49,6 @@ Description:: {{ task.description }}
 {% if task.id not in story_tasks[sid] %}
 {% set _ = story_tasks[sid].append(task.id) %}
 {% endif %}
-{% endfor %}
 {% endfor %}
 {% endfor %}
 

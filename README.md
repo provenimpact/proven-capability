@@ -102,7 +102,7 @@ flowchart LR
 - `needs-design` requires `spec.yaml`
 - `needs-tasks` prefers design but can derive tasks directly from `spec.yaml`
 - `needs-tests` is opt-in (requires TDD ADR) -- derives executable tests from `spec.yaml`
-- `needs-implementation` prefers tasks but can work requirement-by-requirement from design alone
+- `needs-implementation` follows the execution inputs chosen in the transition plan: task DAG when `tasks.yaml` exists, design-guided fallback from `design.adoc`, or spec-guided fallback from `spec.yaml`
 - `needs-design` can trigger `needs-adr` creation for technology decisions
 
 Independent features can be processed concurrently.
@@ -141,7 +141,7 @@ flowchart LR
 | `needs-design` | `spec.yaml`, ADRs, `constraints.yaml`, `architecture.adoc` | `design.adoc`, `data-model.adoc`, `contracts/` |
 | `needs-tasks` | `design.adoc` (or `spec.yaml` as fallback), `constraints.yaml` | `tasks.yaml` |
 | `needs-tests` | `spec.yaml`, `design.adoc`, `constraints.yaml` | test files |
-| `needs-implementation` | `tasks.yaml` (or `design.adoc` as fallback), `spec.yaml`, `constraints.yaml`, ADRs | source code |
+| `needs-implementation` | execution inputs chosen in the transition plan (`tasks.yaml`, `design.adoc`, and/or `spec.yaml`), `constraints.yaml`, ADRs | source code |
 | `needs-adr` | existing ADRs | `docs/adrs/*.yaml`, `index.yaml` |
 | `needs-architecture` | all feature designs, ADRs, `docs/constraints.yaml`, codebase | `docs/architecture.adoc` |
 | `needs-dependencies` | package manifests, `docs/constraints.yaml` | package manifests, lockfiles |
@@ -233,7 +233,7 @@ Testing is opt-in, controlled by an ADR decision. When a project adopts TDD:
 - The orchestrator prompts for this decision on the first feature evolution intent
 
 ### State Log
-Append-only audit trail at `docs/state-log.adoc` recording every transition: what was intended, what changed, what was verified.
+Append-only audit trail at `docs/state-log.adoc` recording every transition: what was intended, which capabilities were planned, what changed, and what was verified.
 
 ## Capabilities
 

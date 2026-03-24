@@ -10,3 +10,7 @@
 
 # OpenCode
 .opencode/node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
