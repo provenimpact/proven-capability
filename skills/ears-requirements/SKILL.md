@@ -9,7 +9,7 @@ Guide the writing, review, and translation of requirements using the EARS (Easy 
 
 ## Reference Material
 
-The canonical EARS patterns, templates, examples, and checklists are in `references/ears-reference.adoc`. Consult it for sentence type definitions, templates, and troubleshooting. The content below provides operational guidance for applying the methodology -- it does not duplicate the reference.
+The canonical EARS patterns, templates, examples, and checklists are in `references/ears-reference.adoc`. Consult it for sentence type definitions, templates, and troubleshooting. The content below provides operational guidance for applying the methodology — it does not duplicate the reference.
 
 ## How to Apply EARS
 
