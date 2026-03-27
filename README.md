@@ -197,6 +197,7 @@ docs/features/shopping-cart/
 The `spec.yaml` file combines user stories and EARS requirements in a single schema-validated artifact:
 
 ```yaml
+$id: https://provenimpact.github.io/proven-needs/schemas/feature-spec-v1.0.0.schema.json
 feature: shopping-cart
 prefix: CART
 version: "1.0.0"

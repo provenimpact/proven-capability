@@ -45,28 +45,17 @@ if not SCHEMA_PATH.exists():
     sys.exit(2)
 
 schema = json.loads(SCHEMA_PATH.read_text())
-SCHEMA_VERSION = schema.get("version", "0.0.0")
+EXPECTED_SCHEMA_ID = schema.get("$id", "")
 
 
 def check_id_field(doc: dict, label: str) -> list[str]:
-    """Check that the artifact's $id references a compatible schema version."""
+    """Check that the artifact's $id matches the loaded schema exactly."""
     artifact_id = doc.get("$id", "")
     if not artifact_id:
         return [f"{label}: missing $id field"]
 
-    import re
-
-    match = re.search(r"-v(\d+)\.(\d+)\.(\d+)\.", artifact_id)
-    if not match:
-        return [f"{label}: $id does not contain versioned schema reference"]
-
-    artifact_major = match.group(1)
-    schema_major = SCHEMA_VERSION.split(".")[0]
-    if artifact_major != schema_major:
-        return [
-            f"{label}: $id references schema version {match.group(0)[1:-1]} "
-            f"but schema version is {SCHEMA_VERSION} (major version mismatch)"
-        ]
+    if artifact_id != EXPECTED_SCHEMA_ID:
+        return [f"{label}: $id must be {EXPECTED_SCHEMA_ID} but found {artifact_id}"]
     return []
 
 
