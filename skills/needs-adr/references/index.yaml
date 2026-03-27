@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../schemas/adr-index.schema.json
 
-schema_version: "1.0.0"
+$id: https://provenimpact.github.io/proven-needs/schemas/adr-index-v1.0.0.schema.json
 version: "1.0.0"
 last_updated: "2026-02-19"
 

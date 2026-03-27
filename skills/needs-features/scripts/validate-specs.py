@@ -48,17 +48,24 @@ schema = json.loads(SCHEMA_PATH.read_text())
 SCHEMA_VERSION = schema.get("version", "0.0.0")
 
 
-def check_schema_version(doc: dict, label: str) -> list[str]:
-    """Check that the artifact's schema_version is compatible with the schema."""
-    artifact_ver = doc.get("schema_version", "")
-    if not artifact_ver:
-        return [f"{label}: missing schema_version field"]
+def check_id_field(doc: dict, label: str) -> list[str]:
+    """Check that the artifact's $id references a compatible schema version."""
+    artifact_id = doc.get("$id", "")
+    if not artifact_id:
+        return [f"{label}: missing $id field"]
+
+    import re
+
+    match = re.search(r"-v(\d+)\.(\d+)\.(\d+)\.", artifact_id)
+    if not match:
+        return [f"{label}: $id does not contain versioned schema reference"]
+
+    artifact_major = match.group(1)
     schema_major = SCHEMA_VERSION.split(".")[0]
-    artifact_major = artifact_ver.split(".")[0]
-    if schema_major != artifact_major:
+    if artifact_major != schema_major:
         return [
-            f"{label}: schema_version {artifact_ver} is incompatible with "
-            f"schema version {SCHEMA_VERSION} (major version mismatch)"
+            f"{label}: $id references schema version {match.group(0)[1:-1]} "
+            f"but schema version is {SCHEMA_VERSION} (major version mismatch)"
         ]
     return []
 
@@ -106,8 +113,8 @@ def validate_file(file_path: Path) -> tuple[list[str], dict | None]:
         errors.append(f"{label}: schema: /{path} {e.message}")
         return errors, doc
 
-    # Schema version compatibility
-    errors.extend(check_schema_version(doc, label))
+    # $id field version compatibility
+    errors.extend(check_id_field(doc, label))
 
     feature = doc["feature"]
     prefix = doc["prefix"]

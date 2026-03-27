@@ -89,7 +89,7 @@ Create `docs/adrs/NNNN-<kebab-case-title>.yaml`:
 ```yaml
 # yaml-language-server: $schema=../../skills/needs-adr/schemas/adr.schema.json
 
-schema_version: "1.0.0"
+$id: https://provenimpact.github.io/proven-needs/schemas/adr-v1.0.0.schema.json
 id: ADR-NNNN
 title: <Decision Title>
 status: Accepted
@@ -148,7 +148,7 @@ Create or update `docs/adrs/index.yaml`:
 ```yaml
 # yaml-language-server: $schema=../../skills/needs-adr/schemas/adr-index.schema.json
 
-schema_version: "1.0.0"
+$id: https://provenimpact.github.io/proven-needs/schemas/adr-index-v1.0.0.schema.json
 version: "1.0.0"
 last_updated: "YYYY-MM-DD"
 

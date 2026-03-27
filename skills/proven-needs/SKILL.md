@@ -574,7 +574,7 @@ Transitions are classified by risk level:
 ```yaml
 # yaml-language-server: $schema=../../skills/proven-needs/schemas/constraints.schema.json
 
-schema_version: "1.0.0"
+$id: https://provenimpact.github.io/proven-needs/schemas/constraints-v1.0.0.schema.json
 version: "1.0.0"
 last_updated: "YYYY-MM-DD"
 

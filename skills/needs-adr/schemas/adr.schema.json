@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://provenimpact.github.io/proven-needs/schemas/adr.schema.json",
+  "$id": "https://provenimpact.github.io/proven-needs/schemas/adr-v1.0.0.schema.json",
   "title": "Architecture Decision Record",
   "description": "A single architecture decision record (ADR). Records a technology or architecture decision with context, consequences, and alternatives considered. The top-level 'version' field is a repository-specific schema metadata extension consumed by the validation scripts.",
   "version": "1.0.0",
   "type": "object",
-  "required": ["schema_version", "id", "title", "status", "date", "deciders", "context", "decision", "consequences"],
+  "required": ["$id", "id", "title", "status", "date", "deciders", "context", "decision", "consequences"],
   "additionalProperties": false,
   "properties": {
-    "schema_version": {
+    "$id": {
       "type": "string",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$",
-      "description": "Version of the ADR schema this file was written against."
+      "format": "uri",
+      "description": "Canonical URI of the schema this file conforms to."
     },
     "id": {
       "type": "string",

@@ -162,7 +162,7 @@ Create `docs/features/<slug>/tasks.yaml`:
 ```yaml
 # yaml-language-server: $schema=../../../skills/needs-tasks/schemas/tasks.schema.json
 
-schema_version: "3.0.0"
+$id: https://provenimpact.github.io/proven-needs/schemas/tasks-v3.0.0.schema.json
 feature: <slug>
 version: "1.0.0"
 status: Current
@@ -196,7 +196,7 @@ tasks:
 When tasks are derived without design, omit `source_design_version` and `components`:
 
 ```yaml
-schema_version: "3.0.0"
+$id: https://provenimpact.github.io/proven-needs/schemas/tasks-v3.0.0.schema.json
 feature: <slug>
 version: "1.0.0"
 status: Current
@@ -230,7 +230,7 @@ tasks:
 - `Implemented` -- all tasks are done
 
 **Version rules:**
-- `schema_version` must match the tasks schema major version and is now `3.0.0`
+- `$id` must reference the schema version (e.g., `tasks-v3.0.0.schema.json`)
 - `version` uses SemVer, starts at `1.0.0`
 - `source_design_version` is present only when design informed task creation or updates
 - `source_spec_version` is present only when spec informed task creation or updates

@@ -21,7 +21,7 @@ The YAML file has this top-level structure:
 
 ```yaml
 # yaml-language-server: $schema=<path-to-schema>
-schema_version: "1.0.0"
+$id: https://provenimpact.github.io/proven-needs/schemas/feature-spec-v1.0.0.schema.json
 feature: <slug>
 prefix: <PREFIX>
 version: "1.0.0"

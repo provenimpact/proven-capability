@@ -109,7 +109,7 @@ For reference, the ADR that enables `needs-tests`:
 ....
 [source,yaml]
 ----
-schema_version: "1.0.0"
+$id: https://provenimpact.github.io/proven-needs/schemas/adr-v1.0.0.schema.json
 id: ADR-0004
 title: Adopt Test-Driven Development
 status: Accepted

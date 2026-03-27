@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../schemas/adr.schema.json
 
-schema_version: "1.0.0"
+$id: https://provenimpact.github.io/proven-needs/schemas/adr-v1.0.0.schema.json
 id: ADR-0002
 title: Use PostgreSQL for Persistence
 status: Accepted

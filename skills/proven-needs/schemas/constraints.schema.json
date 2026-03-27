@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://provenimpact.github.io/proven-needs/schemas/constraints.schema.json",
+  "$id": "https://provenimpact.github.io/proven-needs/schemas/constraints-v1.0.0.schema.json",
   "title": "Project Constraints",
   "description": "Project-wide invariants that must not be violated across any state transition. Constraints are organized by category and each has a unique ID for traceability. The top-level 'version' field is a repository-specific schema metadata extension consumed by the validation scripts.",
   "version": "1.0.0",
   "type": "object",
-  "required": ["schema_version", "version", "last_updated", "categories"],
+  "required": ["$id", "version", "last_updated", "categories"],
   "additionalProperties": false,
   "properties": {
-    "schema_version": {
+    "$id": {
       "type": "string",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$",
-      "description": "Version of the constraints schema this file was written against."
+      "format": "uri",
+      "description": "Canonical URI of the schema this file conforms to."
     },
     "version": {
       "type": "string",

@@ -51,17 +51,24 @@ ADR_SCHEMA_VERSION = adr_schema.get("version", "0.0.0")
 INDEX_SCHEMA_VERSION = index_schema.get("version", "0.0.0")
 
 
-def check_schema_version(doc: dict, label: str, schema_version: str) -> list[str]:
-    """Check that the artifact's schema_version is compatible with the schema."""
-    artifact_ver = doc.get("schema_version", "")
-    if not artifact_ver:
-        return [f"{label}: missing schema_version field"]
+def check_id_field(doc: dict, label: str, schema_version: str) -> list[str]:
+    """Check that the artifact's $id references a compatible schema version."""
+    artifact_id = doc.get("$id", "")
+    if not artifact_id:
+        return [f"{label}: missing $id field"]
+
+    import re
+
+    match = re.search(r"-v(\d+)\.(\d+)\.(\d+)\.", artifact_id)
+    if not match:
+        return [f"{label}: $id does not contain versioned schema reference"]
+
+    artifact_major = match.group(1)
     schema_major = schema_version.split(".")[0]
-    artifact_major = artifact_ver.split(".")[0]
-    if schema_major != artifact_major:
+    if artifact_major != schema_major:
         return [
-            f"{label}: schema_version {artifact_ver} is incompatible with "
-            f"schema version {schema_version} (major version mismatch)"
+            f"{label}: $id references schema version {match.group(0)[1:-1]} "
+            f"but schema version is {schema_version} (major version mismatch)"
         ]
     return []
 
@@ -105,7 +112,7 @@ def main():
             errors.append(f"{filename}: schema: /{path} {e.message}")
             continue
 
-        errors.extend(check_schema_version(doc, filename, ADR_SCHEMA_VERSION))
+        errors.extend(check_id_field(doc, filename, ADR_SCHEMA_VERSION))
 
         file_num_match = re.match(r"^(\d{4})-", filename)
         id_num_match = re.match(r"^ADR-(\d{4})$", doc["id"])
@@ -167,7 +174,7 @@ def main():
                 print("PASS  index.yaml")
 
                 errors.extend(
-                    check_schema_version(index_doc, "index.yaml", INDEX_SCHEMA_VERSION)
+                    check_id_field(index_doc, "index.yaml", INDEX_SCHEMA_VERSION)
                 )
 
                 index_ids = {d["id"] for d in index_doc["decisions"]}
