@@ -1,13 +1,12 @@
 = Design Example
 
-This file shows a complete design document for the `shopping-cart` feature of an e-commerce project. The feature's user stories and spec are used as input. The design includes Mermaid diagrams for component interactions and the primary user flow.
+This file shows a complete design document for the `shopping-cart` feature of an e-commerce project. The feature's Gherkin scenarios are used as input. The design includes Mermaid diagrams for component interactions and the primary user flow.
 
 == Context
 
 Given:
 
-* `docs/features/shopping-cart/user-stories.adoc` at version `1.0.0` with 2 stories: US-001 (Add to Cart), US-002 (View Cart)
-* `docs/features/shopping-cart/spec.adoc` at version `1.0.0` with prefix CART (8 requirements)
+* `docs/features/shopping-cart/cart-management.feature` with scenarios @CART-001 through @CART-005 covering add-to-cart, duplicate handling, view cart, update quantity, and remove item
 * `docs/adrs/0001-use-typescript.adoc` (Accepted)
 * `docs/adrs/0002-use-postgresql.adoc` (Accepted)
 * `docs/adrs/0003-use-nextjs.adoc` (Accepted)
@@ -19,8 +18,6 @@ Given:
 = Design: Shopping Cart
 :version: 1.0.0
 :status: Current
-:source-stories-version: 1.0.0
-:source-spec-version: 1.0.0
 :last-updated: 2026-02-20
 :feature: shopping-cart
 :toc:
@@ -142,25 +139,17 @@ Business logic for cart operations. Enforces stock validation, quantity constrai
 
 CartContext (React Context) holds client-side cart state. Synced with backend on mutations. Persisted in localStorage for anonymous users.
 
-== Story Resolution
+== Scenario Resolution
 
-=== US-001: Add to Cart
+=== Feature: Cart Management (cart-management.feature)
 
-Components:: ProductCard (existing), CartContext, CartIcon, POST /api/cart/items, CartService
-Criteria::
-* Display add-to-cart button on each product -> ProductCard shows button (CART-001)
-* Update cart count in header -> POST /api/cart/items via CartService, CartContext updates, CartIcon reflects count (CART-002)
-* Display success confirmation -> Frontend displays toast after successful add (CART-003)
-* Increment quantity for duplicate -> CartService increments quantity if product already in cart (CART-004)
-
-=== US-002: View Cart
-
-Components:: Cart Page, CartContext, PATCH/DELETE /api/cart/items, CartService
-Criteria::
-* Display cart items with quantities -> Cart Page reads CartContext and renders line items (CART-005)
-* Display prices and total -> Cart Page computes and shows item prices and cart total (CART-006)
-* Update total on quantity change -> PATCH /api/cart/items via CartService, CartContext updates, Cart Page re-renders (CART-007)
-* Remove item and update total -> DELETE /api/cart/items via CartService, CartContext updates, Cart Page removes item (CART-008)
+Components:: ProductCard (existing), CartContext, CartIcon, Cart Page, POST/PATCH/DELETE /api/cart/items, CartService
+Scenarios::
+* @CART-001: Add product to cart -> ProductCard button triggers POST /api/cart/items via CartService, CartContext updates, CartIcon reflects count
+* @CART-002: Adding duplicate product increments quantity -> CartService increments quantity if product already in cart
+* @CART-003: View cart contents -> Cart Page reads CartContext and renders line items with prices and total
+* @CART-004: Update item quantity -> PATCH /api/cart/items via CartService, CartContext updates, Cart Page re-renders with updated total
+* @CART-005: Remove item from cart -> DELETE /api/cart/items via CartService, CartContext updates, Cart Page removes item and recalculates total
 ....
 
 == Data Model File (docs/features/shopping-cart/data-model.adoc)

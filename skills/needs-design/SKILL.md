@@ -1,6 +1,6 @@
 ---
 name: needs-design
-description: Create and maintain implementation design documents for a feature. Use when the proven-needs orchestrator determines that a feature needs a design created, updated, or synced with upstream changes. Operates within a single feature package at docs/features/<slug>/. The design document is a living document that explains HOW the feature works — the implementation blueprint that solves the user stories, constrained by the specs and project-wide ADRs. It stays in sync with stories and specs throughout the feature's lifecycle. Each feature design is fully independent and can be implemented without reading other feature designs.
+description: Create and maintain implementation design documents for a feature. Use when the proven-needs orchestrator determines that a feature needs a design created, updated, or synced with upstream changes. Operates within a single feature package at docs/features/<slug>/. The design document is a living document that explains HOW the feature works — the implementation blueprint that solves the Gherkin feature scenarios, constrained by project-wide ADRs and constraints. It stays in sync with .feature files throughout the feature's lifecycle. Each feature design is fully independent and can be implemented without reading other feature designs.
 ---
 
 ## Prerequisites
@@ -13,41 +13,38 @@ During Phase 0 (Research and Decisions), this skill loads the `needs-adr` skill 
 
 Assess the current state of the design for this feature.
 
-### 1. Read feature stories
+### 1. Read feature files
 
-Read `docs/features/<slug>/user-stories.adoc`. Extract `:version:`, all stories, acceptance criteria.
+Read all `docs/features/<slug>/*.feature` files. Extract:
+- `Feature:` descriptions (the user story narratives: As a / I want / So that)
+- All scenario names, tags (spec IDs like `@PROD-001`), and Given/When/Then steps
+- Background sections (shared preconditions)
+- Scenario Outlines with their Examples tables
 
-**If missing:** Report to the orchestrator that stories are missing. The orchestrator decides whether to create them first.
+**If missing:** Report to the orchestrator that feature files are missing. The orchestrator decides whether to invoke `needs-features` first.
 
-### 2. Read feature spec
-
-Read `docs/features/<slug>/spec.adoc`. Extract `:version:`, all requirement IDs and texts.
-
-**If missing:** Report to the orchestrator that specifications are unavailable. The orchestrator should invoke `needs-spec` first -- every feature gets a specification. As a fallback (e.g., partial transition recovery), the design can proceed with story-level acceptance criteria only. If proceeding without spec: set `:source-spec-version:` to `n/a` in the design output.
-
-### 3. Read project-wide artifacts
+### 2. Read project-wide artifacts
 
 - **`docs/adrs/`** -- read all ADRs with status `Accepted`. These are technology constraints.
 - **`docs/constraints.adoc`** -- read all constraints, particularly architecture and quality constraints.
 - **`docs/architecture.adoc`** -- if it exists, understand the current system architecture for context.
 
-### 4. Read existing design
+### 3. Read existing design
 
 If `docs/features/<slug>/design.adoc` exists:
-- Read `:version:`, `:status:`, `:source-stories-version:`, `:source-spec-version:`
+- Read `:version:`, `:status:`, `:last-updated:`
 - Read the full design content
 
-### 5. Analyze codebase
+### 4. Analyze codebase
 
 If this is not a greenfield project, analyze the current code structure to understand what already exists. Look at directory structure, key source files, configuration files, and existing patterns.
 
-### 6. Report observation
+### 5. Report observation
 
 Return to the orchestrator:
 ```
 Feature: <slug>
-Stories: {exists: true, version: "X.Y.Z"}
-Spec: {exists: true/false, version: "X.Y.Z"}
+Feature files: {exists: true/false, count: N, scenarios: N, spec-ids: [...]}
 Design: {exists: true/false, version: "X.Y.Z", status: "Current/Stale"}
 ADRs: {count: N, accepted: N}
 Constraints: {count: N, architecture: N, quality: N}
@@ -63,8 +60,8 @@ Given the desired state from the orchestrator, determine what action is needed.
 | Condition | Action |
 |---|---|
 | No design exists | Create new design |
-| Design exists, source versions match current stories and spec | Design appears current. Report to orchestrator. |
-| Design exists, source versions differ | Design is stale. Sync with upstream changes (incremental update or full redesign). |
+| Design exists, `.feature` files unchanged since design last updated (via git) | Design appears current. Report to orchestrator. |
+| Design exists, `.feature` files changed since design last updated | Design is stale. Sync with upstream changes (incremental update or full redesign). |
 
 ### 2. Check constraints
 
@@ -109,22 +106,22 @@ flowchart TD
         P1 --> SYS["System design<br/>+ Mermaid diagrams"]
         P1 --> DATA["Data model<br/>(if applicable)"]
         P1 --> IFACE["Interface contracts<br/>(if applicable)"]
-        P1 --> STORY["Story resolution<br/>(map stories → design)"]
+        P1 --> SCENRES["Scenario resolution<br/>(map scenarios → design)"]
     end
 
     SYS --> WRITE["Write design files"]
     DATA --> WRITE
     IFACE --> WRITE
-    STORY --> WRITE
+    SCENRES --> WRITE
 ```
 
 ### Phase 0: Research and Decisions
 
-Analyze all user stories and specs (if available) to identify:
+Analyze all Gherkin feature files to identify:
 
-1. **Technology decisions needed** -- for each story, what technology choices are required? Cross-reference against existing ADRs:
-   - "US-003 requires persistent storage -- which database?" (if no ADR exists)
-   - "US-005 requires real-time updates -- WebSocket or SSE?" (if no ADR exists)
+1. **Technology decisions needed** -- for each feature capability, what technology choices are required? Cross-reference against existing ADRs:
+   - "Cart scenarios require persistent storage -- which database?" (if no ADR exists)
+   - "Real-time update scenarios require push mechanism -- WebSocket or SSE?" (if no ADR exists)
 
 2. **Unknowns and dependencies** -- external systems, third-party services, constraints needing clarification.
 
@@ -144,7 +141,7 @@ Analyze all user stories and specs (if available) to identify:
 
 ### Phase 1: Design
 
-Design the solution that solves the user stories while satisfying the specs (when available) and respecting all constraints.
+Design the solution that satisfies all Gherkin scenarios while respecting all constraints.
 
 **The design structure is adaptive.** Choose an organization appropriate for the project type. The sections below are guidance, not a rigid template.
 
@@ -181,7 +178,7 @@ The structure depends on the project:
 If the feature involves persistent or structured data:
 - Entities and their attributes
 - Relationships between entities
-- Validation rules derived from specs
+- Validation rules derived from scenarios
 - State transitions (if applicable)
 
 Write this to a separate file `docs/features/<slug>/data-model.adoc` when the data model is non-trivial.
@@ -195,14 +192,14 @@ If the feature exposes external interfaces:
 
 Write these to `docs/features/<slug>/contracts/` when relevant.
 
-#### Story resolution
+#### Scenario resolution
 
-For each user story in this feature, describe:
-- **Which components are involved** in solving this story
-- **How the acceptance criteria are met** by the design
-- **Which spec IDs are satisfied** by which design elements (when specs are available)
+For each Feature block (user story) in this feature's `.feature` files, describe:
+- **Which components are involved** in solving these scenarios
+- **How the scenarios are satisfied** by the design
+- **Which spec IDs (scenario tags) are covered** by which design elements
 
-This section is the proof that the design solves the stories. Every user story must appear here. When specs are available, every spec ID must be mapped to at least one design element. When specs are not available (`:source-spec-version:` is `n/a`), map acceptance criteria directly to design elements instead.
+This section is the proof that the design solves the scenarios. Every Feature block must appear here. Every spec ID tag (e.g., `@PROD-001`) must be mapped to at least one design element.
 
 ### Write design files
 
@@ -212,8 +209,6 @@ Create `docs/features/<slug>/design.adoc`:
 = Design: <Feature Name>
 :version: 1.0.0
 :status: Current
-:source-stories-version: <user-stories version>
-:source-spec-version: <spec version>
 :last-updated: YYYY-MM-DD
 :feature: <slug>
 :toc:
@@ -242,31 +237,31 @@ Create `docs/features/<slug>/design.adoc`:
  for the primary flow. Add sequence, state, or data flow diagrams
  where they clarify complex interactions.>
 
-== Story Resolution
+== Scenario Resolution
 
-=== US-001: <Title>
+=== Feature: <Feature Name> (<file>.feature)
 
 Components:: <which components are involved>
-Criteria::
-* <acceptance criterion> -> <how the design meets it> (SPEC-ID)
+Scenarios::
+* @PROD-001: <scenario description> -> <how the design satisfies it>
+* @PROD-002: <scenario description> -> <how the design satisfies it>
 * ...
 
-=== US-002: <Title>
+=== Feature: <Another Feature Name> (<file>.feature)
 
 Components:: <which components are involved>
-Criteria::
+Scenarios::
 * ...
 ```
 
 **`:status:` values:**
-- `Current` -- design is valid and aligned with stories and specs
-- `Stale` -- upstream stories or specs have changed since this design was created; sync needed
+- `Current` -- design is valid and aligned with `.feature` files
+- `Stale` -- `.feature` files have changed since this design was created; sync needed
 
 **Version rules:**
 - `:version:` uses SemVer, starts at `1.0.0`
-- `:source-stories-version:` records which user stories version was used
-- `:source-spec-version:` records which spec version was used; set to `n/a` if spec was skipped
 - `:last-updated:` set to today's date
+- Staleness is detected via git: compare `design.adoc` last-modified date against `.feature` file last-modified dates
 
 **Additional files (when applicable):**
 - `docs/features/<slug>/data-model.adoc` -- entity/data model
@@ -274,18 +269,18 @@ Criteria::
 
 ### Sync workflow (when design already exists)
 
-The design is a living document that stays in sync with stories and specs. When upstream artifacts change, the design is updated to reflect the new reality.
+The design is a living document that stays in sync with `.feature` files. When upstream feature files change, the design is updated to reflect the new reality.
 
 ```mermaid
 flowchart TD
-    START["Sync triggered"] --> STALE{"Quick staleness check:<br/>source versions ≠<br/>current versions?"}
+    START["Sync triggered"] --> STALE{"Quick staleness check:<br/>.feature files changed<br/>since design last updated?"}
 
     STALE -->|No| CURRENT["Design appears current<br/>→ report to orchestrator"]
     STALE -->|Yes| DIFF["Content-based<br/>change analysis"]
 
-    DIFF --> NEW["New stories/specs<br/>→ need design coverage"]
-    DIFF --> MOD["Modified stories/specs<br/>→ update design sections"]
-    DIFF --> REM["Removed stories/specs<br/>→ orphaned design sections"]
+    DIFF --> NEW["New scenarios<br/>→ need design coverage"]
+    DIFF --> MOD["Modified scenarios<br/>→ update design sections"]
+    DIFF --> REM["Removed scenarios<br/>→ orphaned design sections"]
 
     NEW --> REPORT["Present change<br/>report to user"]
     MOD --> REPORT
@@ -295,37 +290,36 @@ flowchart TD
     DECIDE -->|Incremental| INCR["Apply incremental<br/>updates"]
     DECIDE -->|Full redesign| FULL["Redesign from<br/>scratch"]
 
-    INCR --> BUMP["Version bump<br/>+ update source versions<br/>+ set status: Current"]
+    INCR --> BUMP["Version bump<br/>+ set status: Current"]
     FULL --> BUMP
 ```
 
 #### Quick staleness check
 
-Compare `:source-stories-version:` and `:source-spec-version:` in `design.adoc` against the current versions of `user-stories.adoc` and `spec.adoc`. If versions match, inform the orchestrator that the design appears current.
+Use git to compare the last-modified dates of `.feature` files against `design.adoc`. If all `.feature` files are older than the design's `:last-updated:` date, inform the orchestrator that the design appears current.
 
 #### Content-based change analysis
 
-1. Read current stories and specs
-2. Compare against the design's Story Resolution section
+1. Use `git diff` on the `.feature` files to identify changes since the design was last updated
+2. Compare against the design's Scenario Resolution section
 3. Identify:
-   - **New stories/specs** -- not covered by the design
-   - **Modified stories/specs** -- design elements need updating
-   - **Removed stories/specs** -- design elements are orphaned
+   - **New scenarios** -- not covered by the design (new spec ID tags)
+   - **Modified scenarios** -- design elements need updating (changed Given/When/Then steps)
+   - **Removed scenarios** -- design elements are orphaned (spec ID tags no longer present)
 
 #### Present change report
 
 ```
-Design sync: stories 1.0.0 -> 1.1.0, spec 1.0.0 -> 1.1.0
+Design sync: .feature files changed
 
 Added:
-  - US-003 needs new components and story resolution entry
-  - CART-009, CART-010 need design coverage
+  - @CART-009, @CART-010: new scenarios need design coverage
 
 Modified:
-  - US-001 criteria changed -- CartService logic needs revision
+  - @PROD-001: scenario steps changed -- component logic needs revision
 
 Removed:
-  - US-002 removed -- Cart Page and related design sections orphaned
+  - @PROD-004: scenario removed -- sort feature design sections orphaned
 
 Sections unaffected: Technical Context, Decisions and Constraints
 ```
@@ -335,11 +329,11 @@ Ask the user whether to apply incrementally or redesign from scratch.
 #### Apply changes
 
 1. **Preserve stable sections:** Keep design sections unaffected by changes.
-2. **Update affected sections:** Modify design sections impacted by changed stories or specs.
-3. **Remove orphaned sections:** Remove design elements that existed solely for removed stories.
-4. **Update Story Resolution:** Re-map all stories, ensuring every current story and spec ID is accounted for.
+2. **Update affected sections:** Modify design sections impacted by changed scenarios.
+3. **Remove orphaned sections:** Remove design elements that existed solely for removed scenarios.
+4. **Update Scenario Resolution:** Re-map all scenarios, ensuring every current spec ID tag is accounted for.
 5. **Bump version:** MAJOR if elements removed, MINOR if added/modified, PATCH if metadata only.
-6. **Update source versions:** Set `:source-stories-version:` and `:source-spec-version:` to current. Set `:status:` to `Current`. Update `:last-updated:`.
+6. **Set `:status:` to `Current`.** Update `:last-updated:`.
 
 ### Post-implementation reconciliation
 
@@ -352,9 +346,9 @@ The orchestrator passes:
 **Steps:**
 
 1. For each divergence routed to this skill:
-   a. Locate the relevant design sections (system design, story resolution, data model, contracts)
+   a. Locate the relevant design sections (system design, scenario resolution, data model, contracts)
    b. Update the design to accurately reflect what was built
-   c. Ensure the Story Resolution section still correctly maps stories to design elements
+   c. Ensure the Scenario Resolution section still correctly maps scenarios to design elements
 2. Verify that the updated design remains internally consistent (no orphaned references, no contradictions between sections)
 3. Bump version: PATCH if minor clarifications, MINOR if substantive structural changes
 4. Keep `:status:` as `Current` -- the design remains a living document
@@ -363,20 +357,19 @@ The orchestrator passes:
 ## Quality Checklist
 
 Before finalizing, verify:
-- Every user story in this feature is addressed in Story Resolution
-- Every spec ID is mapped to at least one design element (skip if `:source-spec-version:` is `n/a`)
+- Every Feature block in this feature's `.feature` files is addressed in Scenario Resolution
+- Every spec ID tag (`@PREFIX-NNN`) is mapped to at least one design element
 - All ADR decisions are respected in the design
 - All architecture constraints from `docs/constraints.adoc` are satisfied
 - No unresolved unknowns remain (or are explicitly listed)
 - Design is implementable (specific enough to code from)
 - Design does not depend on other feature designs
-- Source versions are recorded correctly
-- Data model covers all entities implied by the stories (if applicable)
-- Interface contracts match the spec requirements (if applicable)
+- Data model covers all entities implied by the scenarios (if applicable)
+- Interface contracts match the scenario expectations (if applicable)
 - At least one Mermaid component interaction diagram is included in System Design
 - Diagrams accurately reflect the components and flows described in prose
 - Sequence diagrams cover the primary user flow (when the flow involves multiple components)
 
 ## Reference
 
-See `references/example.adoc` for a complete example showing how a feature's stories and specs become a design document with story resolution mapping.
+See `references/example.adoc` for a complete example showing how a feature's Gherkin scenarios become a design document with scenario resolution mapping.

@@ -1,0 +1,579 @@
+= Supply Review Example
+
+This file shows a supply chain review cycle for the canonical e-commerce scenario.
+
+== Context
+
+Given:
+
+* TypeScript/Next.js e-commerce application
+* `package.json` with 47 direct dependencies
+* `docs/constraints.adoc` with:
+  - Security constraint: "No dependency with a known CRITICAL or HIGH CVE may remain unpatched for more than 7 days"
+  - Licensing constraint: "Only MIT, Apache-2.0, and BSD-licensed dependencies are permitted"
+  - Supply chain constraint: "All direct production dependencies must have a current supply review (reviewed within 180 days)"
+
+== Single Dependency Review: stripe
+
+The user wants to add `stripe` as a payment processing dependency.
+
+=== Observation
+
+....
+Supply reviews:
+  total-direct-dependencies: 47
+  reviewed: 42 (current: 40, stale: 2, version-drifted: 0)
+  unreviewed: 5 (including stripe -- new dependency)
+  verdicts: {accept: 38, review-required: 4, reject: 0}
+Staleness threshold: 180 days
+Constraint violations:
+  - Supply chain: 5 dependencies lack a current supply review
+Dependencies needing review:
+  - stripe (reason: new dependency being added)
+....
+
+=== Evaluation
+
+....
+Action: review
+Dependencies to review:
+  - stripe@14.12.0 (reason: new dependency, preliminary-risk: unknown)
+Data completeness: {auto-populated: 68%, manual-pending: 32%}
+Constraint implications:
+  - Supply chain constraint will improve (4 unreviewed after this review)
+  - Licensing: stripe uses MIT -- compliant
+....
+
+=== Data Fetched
+
+**npm registry (https://registry.npmjs.org/stripe/14.12.0):**
+
+* Version: 14.12.0
+* License: MIT
+* Registry maintainers (publish rights): 5 (stripe-admin, raynos, brandur-stripe, ob-stripe, jar-stripe)
+* Author: Stripe (support@stripe.com)
+* Weekly downloads: ~1,800,000
+* First published: 2011-10-21
+* Last publish: 2024-11-15
+
+**GitHub (https://api.github.com/repos/stripe/stripe-node):**
+
+* Stars: ~3,800
+* Forks: ~580
+* Open issues: ~45
+* Repository contributors (code authors): 180+
+* Last commit: 3 days ago
+* Commit frequency: 15-20 per month
+* SECURITY.md: Present
+* Branch protection: Enabled (inferred from Scorecard)
+
+**deps.dev version endpoint (https://api.deps.dev/v3alpha/systems/npm/packages/stripe/versions/14.12.0):**
+
+* License: MIT
+* Advisories: none
+* SLSA provenance: verified (source: github.com/stripe/stripe-node)
+* Related project ID: `github.com/stripe/stripe-node`
+* Direct dependencies: 1 (node-fetch for some older Node.js versions)
+
+**deps.dev project endpoint (https://api.deps.dev/v3alpha/projects/github.com%2Fstripe%2Fstripe-node):**
+
+* OpenSSF Scorecard overall: 6.8/10 (date: 2026-02-20)
+* Individual checks:
+  - Maintained: 10/10 (30 commits and 5 issue activity in last 90 days)
+  - Code-Review: 8/10 (24/29 approved changesets)
+  - Dangerous-Workflow: 10/10 (no dangerous patterns)
+  - Binary-Artifacts: 10/10 (no binaries found)
+  - License: 10/10 (MIT detected)
+  - CI-Tests: 7/10 (tests detected in CI)
+  - Branch-Protection: -1 (could not determine -- token permissions)
+  - Pinned-Dependencies: 2/10 (many unpinned GitHub Actions)
+  - Token-Permissions: 5/10 (some excessive permissions)
+  - Security-Policy: 10/10 (SECURITY.md found)
+  - Signed-Releases: 0/10 (releases not cryptographically signed)
+  - SAST: 0/10 (no static analysis detected)
+  - Fuzzing: 0/10 (no fuzzing detected)
+  - CII-Best-Practices: 0/10 (no badge)
+  - Packaging: -1 (no publishing workflow detected)
+* Stars: ~3,800
+* Forks: ~580
+* Open issues: ~45
+* Dependents: ~28,000 packages
+
+**bestpractices.dev:**
+
+* OpenSSF Best Practices badge: Not found (Stripe has its own security program)
+
+=== Generated Report
+
+The skill produces the following file at `docs/supply-reviews/stripe.adoc`:
+
+....
+= Supply Review: stripe
+:version: 1.0.0
+:last-reviewed: 2026-02-23
+:risk-level: Low
+:verdict: Accept
+:package-version: 14.12.0
+:ecosystem: npm
+:source-url: https://github.com/stripe/stripe-node
+:registry-url: https://www.npmjs.com/package/stripe
+
+== Summary
+
+stripe is a well-maintained, widely-adopted payment processing SDK backed by
+Stripe, Inc. It carries Low risk: active development (commits within days),
+5 maintainers from a single well-resourced organization, MIT license, no known
+vulnerabilities, and an OpenSSF Scorecard of 6.8/10. The package has 1.8M weekly
+downloads and 28K dependents. Verdict: Accept for production use. The single-
+organization maintainer model is noted but mitigated by Stripe's corporate
+backing and the package's critical role in their business.
+
+== Initial Assessment
+
+=== Necessity
+// [manual] Why is this dependency needed?
+Status:: Pending Review
+// Guidance: Document why direct Stripe API integration is preferred over
+// alternatives (e.g., writing raw HTTP calls, using a different payment
+// provider SDK). Consider whether a thinner wrapper would suffice.
+
+=== Authenticity
+Status:: Pass
+Registry name:: stripe (source: npm registry)
+Source repository:: https://github.com/stripe/stripe-node (source: npm registry + verified against deps.dev relatedProjects)
+Created:: 2011-10-21 (13+ years) (source: npm registry)
+Downloads (weekly):: ~1,800,000 (source: npm downloads API)
+Similar names:: none found (stripe-node is a redirect to this package)
+
+== Maintenance & Sustainability
+
+=== Activity Level
+Status:: Pass
+Last commit:: 2026-02-20 (3 days ago)
+Commits (12 months):: ~200
+
+=== Communication
+Status:: Pass
+Last release:: 14.12.0 (2024-11-15)
+Release notes:: Present (detailed changelogs on GitHub)
+
+=== Maintainer Diversity
+Status:: Warn
+
+Registry maintainers (publish rights)::
+Count:: 5
+Users:: stripe-admin, raynos, brandur-stripe, ob-stripe, jar-stripe
+Organizations:: Stripe, Inc. (single organization)
+Source:: npm registry (https://www.npmjs.com/package/stripe)
+
+Repository contributors (code authors)::
+Count:: 180+
+Top contributors:: stripe-openapi (bot), brandur-stripe, ob-stripe, remi-stripe, anniel-stripe
+Source:: GitHub (https://github.com/stripe/stripe-node)
+
+// Note: 5 registry maintainers is healthy for publishing resilience, but
+// all are from Stripe, Inc. (single organization). Flagged as Warn per the
+// evaluation criteria. Mitigated by Stripe being a large, well-funded
+// company for whom this SDK is business-critical. The 180+ contributors
+// indicate strong community health and code review diversity.
+
+=== Release Recency
+Status:: Pass
+Last release date:: 2024-11-15
+Days since release:: ~100
+
+=== Version Stability
+Status:: Pass
+Current version:: 14.12.0
+Pre-release:: No
+
+== Security Practices
+
+=== OpenSSF Scorecard
+Status:: Pass
+Overall score:: 6.8/10
+Scorecard date:: 2026-02-20
+
+Individual checks::
+[cols="3,1,4"]
+!===
+! Check ! Score ! Finding
+
+! Maintained
+! 10
+! 30 commits and 5 issue activity in last 90 days
+
+! Code-Review
+! 8
+! 24/29 approved changesets
+
+! Dangerous-Workflow
+! 10
+! No dangerous patterns detected
+
+! Binary-Artifacts
+! 10
+! No binaries in repo
+
+! License
+! 10
+! MIT detected
+
+! CI-Tests
+! 7
+! Tests detected in CI pipeline
+
+! Token-Permissions
+! 5
+! Some excessive workflow permissions
+
+! Security-Policy
+! 10
+! SECURITY.md found
+
+! Pinned-Dependencies
+! 2
+! Many unpinned GitHub Actions dependencies
+
+! Signed-Releases
+! 0
+! Releases not cryptographically signed
+
+! SAST
+! 0
+! No static analysis tool detected
+
+! Fuzzing
+! 0
+! No fuzzing integration detected
+
+! CII-Best-Practices
+! 0
+! No OpenSSF badge detected
+
+!===
+
+Key concerns:: Signed-Releases (0), SAST (0), Fuzzing (0), Pinned-Dependencies (2). These are common gaps even in well-maintained projects. Signed-Releases and SAST are the most actionable.
+
+=== Best Practices Badge
+Status:: Unavailable
+Level:: None (Stripe maintains its own security program externally)
+
+=== Known Vulnerabilities
+Status:: Pass
+Advisories:: none known
+
+=== Vulnerability Reporting
+Status:: Pass
+SECURITY.md:: Present (https://github.com/stripe/stripe-node/blob/master/SECURITY.md)
+Security advisories:: Enabled
+
+=== Dependency Management
+Status:: Pass
+Outdated dependencies:: 0
+
+=== Testing Practices
+Status:: Pass
+CI pipeline:: Detected (GitHub Actions)
+Scorecard CI-Tests:: pass
+
+=== Repository Security
+Status:: Pass
+Branch protection:: Enabled
+
+=== Security Response
+// [manual]
+Status:: Pending Review
+
+=== Security Documentation
+// [manual]
+Status:: Pending Review
+
+== Usability & Security
+
+=== Interface Stability
+Status:: Pass
+Semver adherence:: Yes (major bumps for breaking changes, documented migration guides)
+Breaking changes in recent releases:: No (within v14.x)
+
+=== Secure Defaults
+// [manual]
+Status:: Pending Review
+
+=== Security Guidance
+// [manual]
+Status:: Pending Review
+
+=== Interface Design
+// [manual]
+Status:: Pending Review
+
+== Adoption & Licensing
+
+=== License
+Status:: Pass
+License:: MIT
+OSI approved:: Yes
+Constraint compliant:: Yes (MIT is in the allowed list)
+
+=== Adoption Level
+Status:: Pass
+Weekly downloads:: ~1,800,000
+Dependents:: ~28,000
+GitHub stars:: ~3,800
+
+=== Name Verification
+Status:: Pass
+Similar packages:: none found
+
+=== Suitability
+// [manual]
+Status:: Pending Review
+
+== Practical Testing
+
+=== Behavior Testing
+// [manual]
+Status:: Pending Review
+
+=== Dependency Impact
+Status:: Pass
+Direct transitive dependencies:: 1
+Total transitive dependencies:: 1
+Notable transitive dependencies:: none with known issues
+
+== Code Evaluation
+
+=== Malicious Code Check
+// [manual]
+Status:: Pending Review
+
+=== Code Completeness
+// [manual]
+Status:: Pending Review
+
+=== Security Implementations
+// [manual]
+Status:: Pending Review
+
+=== Security Reviews
+Status:: Unavailable
+Published reviews:: none found in OpenSSF security reviews list
+
+=== Static Analysis
+// [manual]
+Status:: Pending Review
+
+=== Sandbox Testing
+// [manual]
+Status:: Pending Review
+
+=== Test Validation
+// [manual]
+Status:: Pending Review
+
+== Risk Assessment
+
+=== Score Breakdown
+
+[cols="3,1,1,4"]
+|===
+| Category | Weight | Score | Notes
+
+| Security Practices
+| 30%
+| 8/10
+| Scorecard 6.8, no CVEs, CI tests pass, branch protection, SECURITY.md present. Deducted for no Best Practices badge and no signed releases.
+
+| Maintenance & Sustainability
+| 25%
+| 9/10
+| Very active (commits days ago), 5 maintainers, recent release. Deducted slightly for single-organization maintainers.
+
+| Adoption & Licensing
+| 15%
+| 10/10
+| MIT license (compliant), 1.8M weekly downloads, 28K dependents, 13+ year history.
+
+| Initial Assessment
+| 10%
+| 9/10
+| Authentic package, long history, high downloads. Necessity pending manual review.
+
+| Usability & Security
+| 10%
+| 7/10
+| Stable semver, SECURITY.md present. Manual items pending.
+
+| Practical Testing
+| 5%
+| 8/10
+| Only 1 transitive dependency. Behavior testing pending manual review.
+
+| Code Evaluation
+| 5%
+| 5/10
+| No published security reviews. Manual checks pending.
+
+| **Overall**
+| **100%**
+| **8.4/10**
+| **Risk: Low**
+|===
+
+=== Overrides
+
+No overrides applied.
+
+== Recommendations
+
+1. Accept for production use -- no blocking issues found.
+2. Complete the Necessity section documenting why the Stripe SDK is preferred over alternatives.
+3. Complete Secure Defaults and Security Guidance reviews before handling live payment data.
+4. Monitor for new CVEs via deps.dev.
+5. Note: Signed-Releases scorecard check fails -- consider whether this matters for your threat model.
+
+== Constraint Compliance
+
+[cols="2,1,2"]
+|===
+| Constraint | Status | Detail
+
+| No CRITICAL/HIGH CVE unpatched > 7 days
+| Pass
+| No known vulnerabilities
+
+| Only MIT, Apache-2.0, BSD licenses
+| Pass
+| MIT license
+
+| All direct deps must have current supply review
+| Pass
+| Review completed today
+|===
+
+== CI Data
+
+[source,json]
+----
+{
+  "package": "stripe",
+  "version": "14.12.0",
+  "ecosystem": "npm",
+  "risk_level": "low",
+  "verdict": "accept",
+  "scorecard_overall": 6.8,
+  "scorecard_checks": {
+    "Maintained": 10,
+    "Code-Review": 8,
+    "Dangerous-Workflow": 10,
+    "Binary-Artifacts": 10,
+    "License": 10,
+    "CI-Tests": 7,
+    "Token-Permissions": 5,
+    "Security-Policy": 10,
+    "Pinned-Dependencies": 2,
+    "Signed-Releases": 0,
+    "SAST": 0,
+    "Fuzzing": 0,
+    "CII-Best-Practices": 0
+  },
+  "known_vulnerabilities": 0,
+  "license": "MIT",
+  "license_compliant": true,
+  "registry_maintainers": 5,
+  "repo_contributors": 180,
+  "last_commit_days_ago": 3,
+  "last_release_days_ago": 100,
+  "manual_checks_pending": 12,
+  "manual_checks_completed": 0,
+  "last_reviewed": "2026-02-23",
+  "constraint_violations": []
+}
+----
+....
+
+=== Execution Report
+
+....
+Reviews completed:
+  - stripe@14.12.0: Low risk, Accept (new review)
+Index updated: no (single review, not full audit)
+Constraint violations: none
+Manual reviews pending: 12 items across 1 package
+Blocking issues: none
+....
+
+== Full Audit Example (abbreviated)
+
+When the user requests "Run a supply chain review of all our dependencies", the skill reviews all 47 dependencies and produces:
+
+* 47 individual `.adoc` files in `docs/supply-reviews/`
+* 1 `_index.adoc` summary file
+
+=== Index Output (abbreviated)
+
+....
+= Supply Chain Review Index
+:last-updated: 2026-02-23
+:total-dependencies: 47
+:reviewed: 47
+:unreviewed: 0
+
+== Summary
+
+Full supply chain audit completed. 47 direct production dependencies reviewed.
+Overall posture: Healthy. 1 dependency at High risk (node-ipc, unmaintained with
+known protest-ware history), 3 at Medium risk (pre-1.0 or stale releases),
+43 at Low risk. No Critical findings. 1 licensing constraint violation
+(colors@1.4.1 uses a non-standard license).
+
+== Dependency Risk Overview
+
+[cols="3,1,1,1,1,2"]
+|===
+| Package | Version | Risk | Verdict | Last Reviewed | Key Finding
+
+| stripe | 14.12.0 | Low | Accept | 2026-02-23 | Well-maintained, MIT, no CVEs
+| next | 14.1.0 | Low | Accept | 2026-02-23 | Active, MIT, Vercel-backed
+| react | 18.2.0 | Low | Accept | 2026-02-23 | Meta-backed, massive adoption
+| zod | 3.22.4 | Low | Accept | 2026-02-23 | Active, MIT, good scorecard
+| node-ipc | 11.1.0 | High | Review Required | 2026-02-23 | Protest-ware history, evaluate alternatives
+| colors | 1.4.1 | Medium | Review Required | 2026-02-23 | Non-standard license, sabotage history
+| ...
+|===
+
+== Risk Distribution
+
+* Critical: 0
+* High: 1
+* Medium: 3
+* Low: 43
+* Unreviewed: 0
+
+== CI Data
+
+[source,json]
+----
+{
+  "audit_date": "2026-02-23",
+  "total_dependencies": 47,
+  "reviewed": 47,
+  "unreviewed": 0,
+  "risk_distribution": {
+    "critical": 0,
+    "high": 1,
+    "medium": 3,
+    "low": 43
+  },
+  "verdict_distribution": {
+    "accept": 43,
+    "review_required": 4,
+    "reject": 0
+  },
+  "constraint_violations": 1,
+  "manual_checks_pending": 564,
+  "blocking": false
+}
+----
+....

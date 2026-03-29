@@ -1,6 +1,6 @@
 ---
 name: needs-tasks
-description: Create phased implementation task lists for a feature. Use when the proven-needs orchestrator determines that a feature needs a task breakdown. Operates within a single feature package at docs/features/<slug>/. Tasks define the WORK — discrete coding units organized into sequential phases with parallelism markers and full traceability back to the feature's specs and stories.
+description: Create phased implementation task lists for a feature. Use when the proven-needs orchestrator determines that a feature needs a task breakdown. Operates within a single feature package at docs/features/<slug>/. Tasks define the WORK — discrete coding units organized into sequential phases with parallelism markers and full traceability back to the feature's Gherkin scenarios.
 ---
 
 ## Prerequisites
@@ -13,19 +13,21 @@ Assess the current state of the task list for this feature.
 
 ### 1. Read feature design
 
-Read `docs/features/<slug>/design.adoc`. Extract `:version:`, `:status:`, system design sections, story resolution mappings. Also read `data-model.adoc` and `contracts/` if they exist within the feature package.
+Read `docs/features/<slug>/design.adoc`. Extract `:version:`, `:status:`, system design sections, scenario resolution mappings. Also read `data-model.adoc` and `contracts/` if they exist within the feature package.
 
-**If missing:** Note that design is unavailable. Report to the orchestrator. Tasks will be derived directly from user stories (story-driven derivation). If proceeding: set `:source-design-version:` to `n/a`.
+**If missing:** Note that design is unavailable. Report to the orchestrator. Tasks will be derived directly from feature scenarios (scenario-driven derivation). If proceeding: set `:source-design-version:` to `n/a`.
 
-### 2. Read feature stories and spec
+### 2. Read feature files
 
-- **`docs/features/<slug>/user-stories.adoc`** -- extract story IDs, titles, acceptance criteria, and `:version:`.
-- **`docs/features/<slug>/spec.adoc`** -- extract spec IDs and `:version:`. If missing, set `:source-spec-version:` to `n/a`.
+Read all `docs/features/<slug>/*.feature` files. Extract:
+- `Feature:` descriptions (user story narratives)
+- All scenario names and spec ID tags (e.g., `@PROD-001`)
+- Given/When/Then steps for understanding behavioral expectations
 
 ### 3. Read existing task list
 
 If `docs/features/<slug>/tasks.adoc` exists:
-- Read `:version:`, `:status:`, `:source-design-version:`, `:source-stories-version:`, `:source-spec-version:`
+- Read `:version:`, `:status:`, `:source-design-version:`
 - Read all phases, tasks, tick states, and metadata
 
 ### 4. Read constraints
@@ -42,8 +44,7 @@ Return to the orchestrator:
 ```
 Feature: <slug>
 Design: {exists: true/false, version: "X.Y.Z", status: "Current/Stale"}
-Stories: {exists: true, version: "X.Y.Z"}
-Spec: {exists: true/false, version: "X.Y.Z"}
+Feature files: {exists: true, count: N, scenarios: N}
 Tasks: {exists: true/false, version: "X.Y.Z", status: "Current/Stale/Implemented", progress: "N/M ticked"}
 ```
 
@@ -63,11 +64,11 @@ Given the desired state from the orchestrator, determine what action is needed.
 
 ### 2. Transitive staleness check
 
-If `:source-design-version:` matches the current design version, trust that the design is current -- the design skill is responsible for tracking its own upstream staleness against stories and specs.
+If `:source-design-version:` matches the current design version, trust that the design is current -- the design skill is responsible for tracking its own upstream staleness against `.feature` files.
 
-If `:source-design-version:` does not match, the task list is stale. Warn the orchestrator and recommend updating the design first (which will cascade any upstream story/spec changes into the design before tasks are regenerated).
+If `:source-design-version:` does not match, the task list is stale. Warn the orchestrator and recommend updating the design first (which will cascade any upstream `.feature` file changes into the design before tasks are regenerated).
 
-Do not independently compare `:source-stories-version:` or `:source-spec-version:` against their current versions. Those are recorded for traceability, but staleness detection flows through the design.
+Staleness detection flows through the design. The design skill is responsible for tracking its own upstream staleness against `.feature` files via git.
 
 ### 3. Check constraints
 
@@ -97,28 +98,28 @@ When a design document exists, walk through it systematically to identify discre
 | Interface contracts / API endpoints | Endpoint implementation, request/response handling |
 | Frontend components | Component creation, state management wiring |
 | External integrations | Service client setup, integration logic |
-| Story resolution -- error cases | Error handling, edge cases |
-| Story resolution -- notifications | Notification/email implementation |
+| Scenario resolution -- error cases | Error handling, edge cases |
+| Scenario resolution -- notifications | Notification/email implementation |
 
 **For each task, record:**
 - A clear, actionable title
 - Which design components are involved
-- Which spec IDs it satisfies (when spec exists)
-- Which user stories it contributes to
+- Which spec IDs (scenario tags) it satisfies
+- Which Feature blocks (user stories) it contributes to
 - Whether it depends on other tasks (determines phase placement and parallelism)
 
-### Story-driven task derivation (when no design exists)
+### Scenario-driven task derivation (when no design exists)
 
-When `:source-design-version:` is `n/a`, derive tasks directly from user stories:
+When `:source-design-version:` is `n/a`, derive tasks directly from Gherkin scenarios:
 
-1. Read each story and its acceptance criteria
-2. For each story, create one or more tasks. Group related criteria into a single task when tightly coupled; split when independently implementable.
+1. Read each Feature block and its scenarios
+2. For each Feature, create one or more tasks. Group related scenarios into a single task when tightly coupled; split when independently implementable.
 3. For each task, record:
    - A clear, actionable title
-   - Which user stories it implements
-   - Which spec IDs it satisfies (when spec exists; omit `Specs::` if also `n/a`)
+   - Which Feature blocks it implements
+   - Which spec IDs (scenario tags) it satisfies
    - `Components::` is omitted since there is no design to reference
-4. Use story groupings to inform phase organization
+4. Use Feature block groupings to inform phase organization
 
 ### Organize into phases
 
@@ -152,8 +153,6 @@ Create `docs/features/<slug>/tasks.adoc`:
 :version: 1.0.0
 :status: Current
 :source-design-version: <design version>
-:source-stories-version: <user-stories version>
-:source-spec-version: <spec version>
 :last-updated: YYYY-MM-DD
 :feature: <slug>
 :toc:
@@ -169,15 +168,15 @@ Create `docs/features/<slug>/tasks.adoc`:
 * [ ] TASK-001: <Task title> [parallel]
 +
 Components:: <design components involved>
-Stories:: <story numbers>
-Specs:: <spec IDs>
+Features:: <Feature block names from .feature files>
+Scenarios:: <spec ID tags, e.g., @PROD-001, @PROD-002>
 Description:: <What to implement and key details>
 
 * [ ] TASK-002: <Task title> [sequential]
 +
 Components:: <design components involved>
-Stories:: <story numbers>
-Specs:: <spec IDs>
+Features:: <Feature block names>
+Scenarios:: <spec ID tags>
 Description:: <What to implement and key details>
 
 == Phase 2: <Phase Name>
@@ -188,10 +187,10 @@ Description:: <What to implement and key details>
 
 [cols="1,1,1", options="header"]
 |===
-| Story | Spec IDs | Tasks
+| Feature (.feature file) | Scenario Tags | Tasks
 
-| US-001: <title> | PROD-001, PROD-002 | TASK-001, TASK-005
-| US-002: <title> | PROD-005, PROD-006 | TASK-002, TASK-006
+| Product Catalog (product-catalog.feature) | @PROD-001, @PROD-002 | TASK-001, TASK-005
+| Product Search (product-search.feature) | @PROD-005, @PROD-006 | TASK-002, TASK-006
 |===
 ```
 
@@ -203,20 +202,19 @@ Description:: <What to implement and key details>
 **Version rules:**
 - `:version:` uses SemVer, starts at `1.0.0`
 - `:source-design-version:` records which design version was used; `n/a` if design was skipped
-- `:source-stories-version:` and `:source-spec-version:` record upstream versions; `n/a` if skipped
 - `:last-updated:` set to today's date
 
 **Task IDs:** Sequential within the document: TASK-001, TASK-002, etc. IDs are stable -- do not renumber when updating.
 
 **Ticking off tasks:** When a task is completed, change `[ ]` to `[x]`. When all tasks are ticked, set `:status:` to `Implemented`.
 
-**Task file lifecycle:** Tasks guide implementation but are not the source of truth for feature completion -- spec-derived tests serve that role. Once a feature reaches `Implemented` (all spec-derived tests pass), the task file may be removed at the team's discretion.
+**Task file lifecycle:** Tasks guide implementation but are not the source of truth for feature completion -- passing Gherkin scenarios serve that role. Once a feature reaches `Implemented` (all scenarios pass), the task file may be removed at the team's discretion.
 
 ## Quality Checklist
 
 Before finalizing, verify:
-- Every spec ID from the feature's `spec.adoc` appears in at least one task (skip if `:source-spec-version:` is `n/a`)
-- Every user story is covered by the aggregate tasks
+- Every spec ID tag from the feature's `.feature` files appears in at least one task
+- Every Feature block is covered by the aggregate tasks
 - Every design section has corresponding tasks (skip if `:source-design-version:` is `n/a`)
 - No circular dependencies between phases
 - Phase ordering respects actual implementation dependencies
@@ -224,7 +222,7 @@ Before finalizing, verify:
 - Parallel/sequential markers are correct
 - The traceability section is complete and accurate
 - Source versions are recorded correctly
-- Quality constraints from `docs/constraints.adoc` are addressed (e.g., testing tasks exist if coverage constraints apply)
+- Quality constraints from `docs/constraints.adoc` are addressed (e.g., testing tasks exist if coverage constraints apply). Note: step definition implementation is handled automatically by `needs-implementation` as a pre-step before production code in each phase -- do not create separate tasks for step definitions.
 
 ## Reference
 

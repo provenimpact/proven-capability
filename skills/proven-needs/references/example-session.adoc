@@ -28,25 +28,25 @@ Not a constraint (no universal quantifiers, has identifiable user roles and jour
 
 === Step 3: Feature Decomposition (Two-Pass)
 
-**Pass 1:** Invoke `needs-stories` with temporary slug `_drafts` to derive stories from the intent. 5 stories identified.
+**Pass 1:** Invoke `needs-features` with temporary slug `_drafts` to derive Gherkin scenarios from the intent. Scenarios covering 5 user capabilities identified.
 
-Analyze story cohesion and propose feature grouping:
+Analyze scenario cohesion and propose feature grouping:
 
 ....
 Based on your intent, I propose 3 features:
 
-Feature 1: product-browsing
-  - View Product Catalog
-  - Search Products
+Feature 1: product-browsing (prefix: PROD)
+  - Product Catalog scenarios (@PROD-001 through @PROD-004)
+  - Product Search scenarios (@PROD-005 through @PROD-008)
   (Share product data and catalog UI)
 
-Feature 2: shopping-cart
-  - Add to Cart
-  - View Cart
+Feature 2: shopping-cart (prefix: CART)
+  - Add to Cart scenarios (@CART-001, @CART-002)
+  - View Cart scenarios (@CART-003 through @CART-005)
   (Share cart state and cart data)
 
-Feature 3: checkout
-  - Checkout Process
+Feature 3: checkout (prefix: CHK)
+  - Checkout Process scenarios (@CHK-001 through @CHK-005)
   (Independent user journey with payment flow)
 
 Adjust grouping?
@@ -54,16 +54,15 @@ Adjust grouping?
 
 User confirms the grouping.
 
-**Pass 2:** For each confirmed feature, invoke `needs-stories` with the final slug to create `user-stories.adoc` with proper feature-scoped story IDs (US-001, US-002, ... per feature). Remove temporary `_drafts` directory.
+**Pass 2:** For each confirmed feature, invoke `needs-features` with the final slug to create `.feature` files with proper feature-scoped spec ID tags. Remove temporary `_drafts` directory.
 
 === Step 4: Evaluate Feasibility
 
 For each feature:
-- Stories can be created (no preconditions)
-- Specs can be derived from stories
-- Design can be created from stories + specs
+- Feature files can be created (no preconditions)
+- Design can be created from `.feature` files
 - Tasks can be derived from design
-- Implementation can proceed from tasks
+- Implementation can proceed from tasks (scenarios serve as acceptance gate)
 - No constraint violations anticipated
 
 Technology decisions will emerge during design (framework, database, payment provider) -- ADRs will be created.
@@ -72,20 +71,18 @@ Technology decisions will emerge during design (framework, database, payment pro
 Transition plan:
 
 For each feature (product-browsing, shopping-cart, checkout):
-  1. needs-stories: Create user stories
-  2. needs-spec: Derive specifications
-  3. needs-design: Create implementation design
-  4. needs-tasks: Create phased task breakdown
-  5. needs-implementation: Implement code
-  6. Resolve any design divergences (user decides per-divergence)
-  7. needs-tests: Generate tests from specifications
+  1. needs-features: Create Gherkin feature files (requirements + specifications + tests in one)
+  2. needs-design: Create implementation design
+  3. needs-tasks: Create phased task breakdown
+  4. needs-implementation: Implement code + step definitions (scenarios must pass)
+  5. Resolve any design divergences (user decides per-divergence)
 
 Additionally:
   - needs-adr: Record technology decisions (during design phases)
   - needs-architecture: Document architecture (after all features implemented)
 
 Risk: HIGH (new features, 3 feature packages, full lifecycle)
-Estimated: 15+ artifacts + code + tests
+Estimated: .feature files + design + tasks + step definitions + code per feature
 
 Proceed?
 ....
@@ -96,25 +93,22 @@ User confirms.
 
 ==== Feature 1: product-browsing
 
-1. **needs-stories** creates `docs/features/product-browsing/user-stories.adoc` v1.0.0 (2 stories)
-2. **needs-spec** derives `docs/features/product-browsing/spec.adoc` v1.0.0 (prefix: PROD, 8 requirements)
-3. **needs-design** creates `docs/features/product-browsing/design.adoc` v1.0.0
+1. **needs-features** creates `docs/features/product-browsing/product-catalog.feature` and `product-search.feature` (prefix: PROD, 8 scenarios with @PROD-001 through @PROD-008 tags) + skeleton step definitions in `docs/features/product-browsing/steps/`
+2. **needs-design** creates `docs/features/product-browsing/design.adoc` v1.0.0
    - During Phase 0, identifies technology decisions: framework choice, database choice
    - Invokes **needs-adr** to create ADR-0001 (TypeScript) and ADR-0002 (PostgreSQL)
-4. **needs-tasks** creates `docs/features/product-browsing/tasks.adoc` v1.0.0 (3 phases, 8 tasks)
-5. **needs-implementation** implements code phase by phase
-6. **Divergence check:** needs-implementation reports no divergences (implementation matched design)
-7. **needs-tests** generates tests from PROD-001 through PROD-008 (3 test files, 19 test cases)
+3. **needs-tasks** creates `docs/features/product-browsing/tasks.adoc` v1.0.0 (3 phases, 8 tasks)
+4. **needs-implementation** implements code + step definitions phase by phase (all Gherkin scenarios must pass)
+5. **Divergence check:** needs-implementation reports no divergences (implementation matched design)
 
 ==== Feature 2: shopping-cart
 
-1. **needs-stories** creates `docs/features/shopping-cart/user-stories.adoc` v1.0.0 (2 stories)
-2. **needs-spec** derives `docs/features/shopping-cart/spec.adoc` v1.0.0 (prefix: CART, 8 requirements)
-3. **needs-design** creates `docs/features/shopping-cart/design.adoc` v1.0.0
+1. **needs-features** creates `docs/features/shopping-cart/cart-management.feature` (prefix: CART, 5 scenarios with @CART-001 through @CART-005 tags) + skeleton step definitions
+2. **needs-design** creates `docs/features/shopping-cart/design.adoc` v1.0.0
    - References existing ADRs, no new decisions needed
-4. **needs-tasks** creates `docs/features/shopping-cart/tasks.adoc` v1.0.0 (3 phases, 9 tasks)
-5. **needs-implementation** implements code phase by phase
-6. **Divergence check:** needs-implementation reports 1 divergence:
+3. **needs-tasks** creates `docs/features/shopping-cart/tasks.adoc` v1.0.0 (3 phases, 9 tasks)
+4. **needs-implementation** implements code + step definitions phase by phase
+5. **Divergence check:** needs-implementation reports 1 divergence:
 +
 ....
 Design divergence: CartService validation placement
@@ -129,19 +123,15 @@ User decides: "Update design" -- the route-level pattern is consistent and the c
 +
 Orchestrator invokes **needs-design** (reconciliation mode) to update `design.adoc` v1.0.1.
 
-7. **needs-tests** generates tests from CART-001 through CART-008 (3 test files, 22 test cases)
-
 ==== Feature 3: checkout
 
-1. **needs-stories** creates `docs/features/checkout/user-stories.adoc` v1.0.0 (1 story)
-2. **needs-spec** derives `docs/features/checkout/spec.adoc` v1.0.0 (prefix: CHK, 6 requirements)
-3. **needs-design** creates `docs/features/checkout/design.adoc` v1.0.0
+1. **needs-features** creates `docs/features/checkout/checkout-process.feature` (prefix: CHK, 5 scenarios with @CHK-001 through @CHK-005 tags) + skeleton step definitions
+2. **needs-design** creates `docs/features/checkout/design.adoc` v1.0.0
    - During Phase 0, identifies payment provider decision
    - Invokes **needs-adr** to create ADR-0003 (Stripe)
-4. **needs-tasks** creates `docs/features/checkout/tasks.adoc` v1.0.0 (3 phases, 7 tasks)
-5. **needs-implementation** implements code phase by phase
-6. **Divergence check:** needs-implementation reports no divergences
-7. **needs-tests** generates tests from CHK-001 through CHK-006 (2 test files, 14 test cases)
+3. **needs-tasks** creates `docs/features/checkout/tasks.adoc` v1.0.0 (3 phases, 7 tasks)
+4. **needs-implementation** implements code + step definitions phase by phase
+5. **Divergence check:** needs-implementation reports no divergences
 
 ==== Post-implementation
 
@@ -173,10 +163,10 @@ Desired state "users can browse products, add them to cart, and checkout" is ach
 :features: product-browsing (new), shopping-cart (new), checkout (new)
 :desired-state: E-commerce site with product browsing, cart management, and checkout
 :prior-state: Empty project scaffold
-:capabilities-invoked: needs-stories, needs-spec, needs-design, needs-adr, needs-tasks, needs-implementation, needs-tests, needs-architecture
+:capabilities-invoked: needs-features, needs-design, needs-adr, needs-tasks, needs-implementation, needs-architecture
 :constraints-checked: Security (pass), Architecture (pass), Quality (pass), Licensing (pass)
 :result: Achieved
-:artifacts-modified: 12 feature artifacts, 3 ADRs, 1 architecture doc, 8 test files, source code
+:artifacts-modified: .feature files (3 features), design.adoc (3), tasks.adoc (3), step definitions, 3 ADRs, 1 architecture doc, source code
 ....
 
 ---

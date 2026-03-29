@@ -55,22 +55,16 @@ During the **Execute** phase, the orchestrator invokes capabilities in dependenc
 flowchart LR
     subgraph feature ["Feature Pipeline (per feature package)"]
         direction LR
-        STORIES["needs-stories<br/><i>WHY</i>"]
-        SPEC["needs-spec<br/><i>WHAT</i>"]
+        FEATURES["needs-features<br/><i>WHY + WHAT + VERIFY</i>"]
         DESIGN["needs-design<br/><i>HOW</i>"]
         TASKS["needs-tasks<br/><i>WORK</i>"]
-        TESTS["needs-tests<br/><i>VERIFY</i>"]
         IMPL["needs-implementation<br/><i>CODE</i>"]
 
-        STORIES --> SPEC
-        STORIES --> DESIGN
-        SPEC --> DESIGN
+        FEATURES --> DESIGN
         DESIGN --> TASKS
-        STORIES -.->|fallback| TASKS
-        SPEC --> TESTS
-        DESIGN -.->|optional| TESTS
+        FEATURES -.->|fallback| TASKS
         TASKS --> IMPL
-        TESTS --> IMPL
+        FEATURES --> IMPL
         DESIGN -.->|fallback| IMPL
     end
 
@@ -79,6 +73,7 @@ flowchart LR
         ADR["needs-adr"]
         ARCH["needs-architecture"]
         DEPS["needs-dependencies"]
+        SUPPLY["needs-supply-review"]
         SEC["needs-security"]
         COMP["needs-compliance"]
     end
@@ -88,6 +83,7 @@ flowchart LR
 
     DESIGN -.->|tech decisions| ADR
     SEC -.->|delegates fixes| DEPS
+    DEPS -.->|new dep detected| SUPPLY
     IMPL -.->|divergences| INTENT
     INTENT -.->|update design| DESIGN
     INTENT -.->|fix code| IMPL
@@ -102,13 +98,13 @@ flowchart LR
 **Key relationships:**
 - **Solid arrows** = primary dependency (required upstream artifact)
 - **Dotted arrows** = optional or fallback paths
-- `needs-spec` is always generated -- every feature gets a specification
-- `needs-design` requires both stories and spec
-- `needs-tasks` prefers design but can derive tasks directly from stories
-- `needs-implementation` prefers tasks but can work story-by-story from design alone
-- `needs-tests` derives test cases from specs *before* implementation -- tests are the acceptance gate for `needs-implementation`
+- `needs-features` is always invoked -- every feature gets Gherkin scenarios that serve as stories, specs, and executable tests
+- `needs-design` requires `.feature` files
+- `needs-tasks` prefers design but can derive tasks directly from `.feature` files
+- `needs-implementation` prefers tasks but can work scenario-by-scenario from design alone. Gherkin scenarios are the acceptance gate -- all must pass.
 - `needs-design` can trigger `needs-adr` creation for technology decisions (lateral invocation)
 - `needs-security` delegates dependency vulnerability fixes to `needs-dependencies`
+- `needs-dependencies` flags new dependencies for `needs-supply-review` evaluation
 - After implementation, divergences between design and code are reported to the orchestrator. The user decides per-divergence whether to update the design or fix the code.
 
 Independent features can be processed concurrently.
@@ -124,18 +120,17 @@ Each capability owns and produces specific artifacts. `state-log.adoc` is manage
 ```mermaid
 flowchart LR
     subgraph feature ["Feature Pipeline"]
-        NS["needs-stories"] --> STORIES[("user-stories.adoc")]
-        NSP["needs-spec"] --> SPEC[("spec.adoc")]
+        NF["needs-features"] --> FEAT[("*.feature files<br/>+ skeleton step defs")]
         NADR["needs-adr"] --> ADRS[("docs/adrs/")]
         ND["needs-design"] --> DESIGN[("design.adoc<br/>data-model.adoc<br/>contracts/")]
         NT["needs-tasks"] --> TASKS[("tasks.adoc")]
-        NI["needs-implementation"] --> CODE[("source code")]
-        NTS["needs-tests"] --> TESTFILES[("test files")]
+        NI["needs-implementation"] --> CODE[("source code<br/>+ step definitions")]
     end
 
     subgraph project ["Project-wide"]
         NARCH["needs-architecture"] --> ARCH[("architecture.adoc")]
         NDEPS["needs-dependencies"] --> DEPS[("package manifests<br/>lockfiles")]
+        NSUPPLY["needs-supply-review"] --> REVIEWS[("docs/supply-reviews/<br/>*.adoc")]
         NSEC["needs-security"] --> CODE2[("source code")]
         NCOMP["needs-compliance"] --> DEPS2[("package manifests")]
     end
@@ -151,8 +146,7 @@ Solid lines are primary inputs; dashed lines are fallback or optional inputs. Al
 ```mermaid
 flowchart RL
     subgraph artifacts ["Artifacts"]
-        STORIES[("user-stories.adoc")]
-        SPEC[("spec.adoc")]
+        FEAT[("*.feature files")]
         ADRS[("docs/adrs/")]
         DESIGN[("design.adoc<br/>data-model.adoc<br/>contracts/")]
         TASKS[("tasks.adoc")]
@@ -161,32 +155,28 @@ flowchart RL
     end
 
     subgraph feature ["Feature Pipeline"]
-        NSP["needs-spec"]
         ND["needs-design"]
         NT["needs-tasks"]
         NI["needs-implementation"]
-        NTS["needs-tests"]
     end
 
     subgraph project ["Project-wide"]
         NARCH["needs-architecture"]
         NDEPS["needs-dependencies"]
+        NSUPPLY["needs-supply-review"]
         NSEC["needs-security"]
         NCOMP["needs-compliance"]
     end
 
     %% ── Feature reads (solid = primary) ───────────────────────
-    STORIES -->|reads| NSP
-    STORIES -->|reads| ND
-    SPEC -->|reads| ND
-    SPEC -->|reads| NTS
+    FEAT -->|reads| ND
     DESIGN -->|reads| NT
     TASKS -->|reads| NI
+    FEAT -->|reads| NI
 
     %% ── Feature reads (dashed = fallback / optional) ──────────
-    STORIES -.->|fallback| NT
+    FEAT -.->|fallback| NT
     DESIGN -.->|fallback| NI
-    DESIGN -.->|reads| NTS
     ADRS -.->|reads| ND
 
     %% ── Project-wide reads ────────────────────────────────────
@@ -194,6 +184,7 @@ flowchart RL
     ADRS -.->|reads| NARCH
     CODE -.->|reads| NARCH
     DEPS -->|reads| NDEPS
+    DEPS -->|reads| NSUPPLY
     CODE -->|reads| NSEC
     DEPS -.->|reads| NSEC
     DEPS -->|reads| NCOMP
@@ -205,21 +196,14 @@ flowchart RL
 
 | Capability | Reads | Writes |
 |---|---|---|
-| `needs-stories` | `constraints.adoc` | `user-stories.adoc` |
-| `needs-spec` | `user-stories.adoc`, `constraints.adoc` | `spec.adoc` |
-| `needs-design` | `user-stories.adoc`, `spec.adoc`, ADRs, `constraints.adoc`, `architecture.adoc` | `design.adoc`, `data-model.adoc`, `contracts/` |
-| `needs-tasks` | `design.adoc` (or `user-stories.adoc` as fallback), `spec.adoc`, `constraints.adoc` | `tasks.adoc` |
-| `needs-implementation` | `tasks.adoc` (or `design.adoc` as fallback), `user-stories.adoc`, `spec.adoc`, `constraints.adoc`, ADRs | source code |
-| `needs-tests` | `spec.adoc`, `design.adoc`, `user-stories.adoc`, `constraints.adoc` | test files |
-| `needs-stories` | `docs/constraints.adoc` | `user-stories.adoc` |
-| `needs-spec` | `user-stories.adoc`, `docs/constraints.adoc` | `spec.adoc` |
-| `needs-design` | `user-stories.adoc`, `spec.adoc`, ADRs, `docs/constraints.adoc`, `architecture.adoc` | `design.adoc`, `data-model.adoc`, `contracts/` |
-| `needs-tasks` | `design.adoc` (or `user-stories.adoc` as fallback), `spec.adoc`, `docs/constraints.adoc` | `tasks.adoc` |
-| `needs-implementation` | `tasks.adoc` (or `design.adoc` as fallback), `user-stories.adoc`, `spec.adoc`, `docs/constraints.adoc`, ADRs | source code |
-| `needs-tests` | `spec.adoc`, `design.adoc`, `user-stories.adoc`, `docs/constraints.adoc`, source code | test files |
+| `needs-features` | `constraints.adoc` | `*.feature` files, skeleton step definitions |
+| `needs-design` | `*.feature` files, ADRs, `constraints.adoc`, `architecture.adoc` | `design.adoc`, `data-model.adoc`, `contracts/` |
+| `needs-tasks` | `design.adoc` (or `*.feature` files as fallback), `constraints.adoc` | `tasks.adoc` |
+| `needs-implementation` | `tasks.adoc` (or `design.adoc` as fallback), `*.feature` files, `constraints.adoc`, ADRs | source code, step definitions |
 | `needs-adr` | existing ADRs | `docs/adrs/*.adoc`, `index.adoc` |
 | `needs-architecture` | all feature designs, ADRs, `docs/constraints.adoc`, codebase | `docs/architecture.adoc` |
 | `needs-dependencies` | package manifests, `docs/constraints.adoc` | package manifests, lockfiles |
+| `needs-supply-review` | package manifests, `docs/supply-reviews/`, `docs/constraints.adoc`, external sources (deps.dev, registries, GitHub) | `docs/supply-reviews/*.adoc`, `docs/supply-reviews/_index.adoc` |
 | `needs-security` | codebase, dependencies, config, `docs/constraints.adoc` | source code, config |
 | `needs-compliance` | dependencies, `docs/constraints.adoc` | dependencies, `docs/constraints.adoc` |
 
@@ -234,7 +218,7 @@ I want users to be able to browse products, add them to cart, and checkout
 The orchestrator will:
 1. Decompose this into feature packages (product-browsing, shopping-cart, checkout)
 2. Ask you to confirm the grouping
-3. For each feature: create stories, derive specs, design, plan tasks, generate tests, implement
+3. For each feature: create Gherkin scenarios, design, plan tasks, implement (scenarios must pass)
 4. Resolve any design divergences (user decides: update design or fix code)
 5. Record technology decisions as ADRs along the way
 6. Update the architecture document when all features are implemented
@@ -257,22 +241,29 @@ Project-wide invariants that must not be violated. Defined in `docs/constraints.
 - Quality standards
 - Performance SLAs
 
-Cross-cutting requirements belong here, not in feature specs.
+Cross-cutting requirements belong here, not in feature scenarios.
 
 ### Feature Packages
 Self-contained units of work at `docs/features/<slug>/`:
 
 ```
 docs/features/shopping-cart/
-├── user-stories.adoc    # WHY: user needs
-├── spec.adoc            # WHAT: testable requirements
+├── *.feature            # WHY + WHAT + VERIFY: Gherkin scenarios
+├── steps/               # Cucumber step definitions (glue code)
 ├── design.adoc          # HOW: implementation blueprint
 └── tasks.adoc           # WORK: phased task breakdown
 ```
 
+Gherkin `.feature` files replace the traditional separation of user stories, specifications, and tests. Each `.feature` file contains:
+- A `Feature:` description with As a / I want / So that (the user story)
+- `Scenario:` blocks with Given/When/Then (the specification and executable test)
+- `@<PREFIX>-<NNN>` tags on each scenario (spec requirement IDs for traceability)
+
+Step definitions (glue code) live within the feature package at `docs/features/<slug>/steps/`.
+
 Each feature is fully independent -- it can be specified, designed, and implemented without reading other features.
 
-Features can be **archived** when superseded or no longer relevant. Archived features remain on disk as historical records but are skipped during intent classification.
+Features can be **archived** by adding the `@archived` tag. Archived features remain on disk as historical records but are skipped during intent classification.
 
 ### State Log
 Append-only audit trail at `docs/state-log.adoc` recording every transition: what was intended, what changed, what was verified.
@@ -283,12 +274,10 @@ Append-only audit trail at `docs/state-log.adoc` recording every transition: wha
 
 | Capability | Skill | What it does |
 |---|---|---|
-| Stories | `needs-stories` | Create user stories explaining WHY |
-| Specifications | `needs-spec` | Derive black-box testable requirements (WHAT) |
+| Features | `needs-features` | Create Gherkin feature files (stories + specs + tests in one) |
 | Design | `needs-design` | Create implementation blueprint (HOW) |
 | Tasks | `needs-tasks` | Break design into phased coding units |
-| Tests | `needs-tests` | Derive and generate tests from specifications (VERIFY) |
-| Implementation | `needs-implementation` | Write and verify code |
+| Implementation | `needs-implementation` | Write and verify code + step definitions |
 
 ### Project-Wide (operate at the project level)
 
@@ -297,14 +286,9 @@ Append-only audit trail at `docs/state-log.adoc` recording every transition: wha
 | ADRs | `needs-adr` | Record technology decisions |
 | Architecture | `needs-architecture` | Document current system architecture |
 | Dependencies | `needs-dependencies` | Manage and update dependency graph |
+| Supply Review | `needs-supply-review` | Evaluate OSS dependencies against OpenSSF criteria |
 | Security | `needs-security` | Assess and remediate security posture |
 | Compliance | `needs-compliance` | Verify license and policy compliance |
-
-### Supporting
-
-| Skill | What it does |
-|---|---|
-| `ears-requirements` | EARS methodology reference for stories and specs |
 
 Every capability follows the **observe/evaluate/execute** pattern:
 
@@ -335,41 +319,35 @@ flowchart TD
 | Artifact | Location | Lifecycle |
 |---|---|---|
 | Constraints | `docs/constraints.adoc` | Stable, changes rarely |
-| User Stories | `docs/features/<slug>/user-stories.adoc` | Living, versioned per feature |
-| Specifications | `docs/features/<slug>/spec.adoc` | Living, synced with stories |
-| Design | `docs/features/<slug>/design.adoc` | Living, synced with stories and specs |
-| Tasks | `docs/features/<slug>/tasks.adoc` | Ephemeral -- disposable once tests verify implementation |
-| Tests | `tests/features/<slug>/` | Living, synced with specs |
+| Feature files | `docs/features/<slug>/*.feature` | Living, tracked via git |
+| Design | `docs/features/<slug>/design.adoc` | Living, synced with .feature files |
+| Tasks | `docs/features/<slug>/tasks.adoc` | Ephemeral -- disposable once scenarios verify implementation |
+| Step definitions | `docs/features/<slug>/steps/` | Living, synced with .feature files |
 | ADRs | `docs/adrs/NNNN-title.adoc` | Permanent, append-only |
+| Supply Reviews | `docs/supply-reviews/<package>.adoc` | Living, refreshed on staleness threshold (default 180 days) or version drift |
 | Architecture | `docs/architecture.adoc` | Living, reflects current system |
 | State Log | `docs/state-log.adoc` | Append-only audit trail |
 | Code | project source | Living -- the actual system |
 
 ### Version Tracking and Staleness
 
-Each downstream artifact tracks its upstream version. When an upstream artifact changes, downstream artifacts become stale and need syncing.
+Feature files (`.feature`) use git-based change detection instead of explicit version attributes. Staleness is detected by comparing modification dates:
 
 ```mermaid
 flowchart LR
-    S["user-stories.adoc<br/>:version:"]
-    SP["spec.adoc<br/>:source-stories-version:"]
-    D["design.adoc<br/>:source-stories-version:<br/>:source-spec-version:"]
-    T["tasks.adoc<br/>:source-design-version:<br/>:source-stories-version:<br/>:source-spec-version:"]
+    F["*.feature files<br/><i>git history</i>"]
+    D["design.adoc<br/>:version:"]
+    T["tasks.adoc<br/>:source-design-version:"]
 
-    S -->|tracked by| SP
-    S -->|tracked by| D
-    SP -->|tracked by| D
-    S -->|tracked by| T
-    SP -->|tracked by| T
+    F -->|staleness via git diff| D
     D -->|tracked by| T
 
-    style S fill:#4CAF50,color:#fff,stroke:none
-    style SP fill:#2196F3,color:#fff,stroke:none
+    style F fill:#4CAF50,color:#fff,stroke:none
     style D fill:#FF9800,color:#fff,stroke:none
     style T fill:#9C27B0,color:#fff,stroke:none
 ```
 
-When stories change, specs become stale. When specs change, the design becomes stale. When the design changes, tasks become stale. The orchestrator detects these cascades during the Evaluate phase and includes sync steps in the transition plan.
+When `.feature` files change, the design may become stale. When the design changes, tasks become stale. The orchestrator detects these cascades during the Evaluate phase and includes sync steps in the transition plan.
 
 ## Risk Classification
 
@@ -378,20 +356,38 @@ Transitions are auto-approved or require confirmation based on risk:
 | Risk | Auto-approve? | Examples |
 |---|---|---|
 | **Low** | Yes | Patch dependency updates, metadata fixes |
-| **Medium** | Propose, ask | Minor dependency updates, spec syncs |
+| **Medium** | Propose, ask | Minor dependency updates, design syncs |
 | **High** | Full plan, require approval | New features, architecture changes, code changes |
 
-## EARS Requirements
+## Gherkin as Requirements
 
-Acceptance criteria and specifications use [EARS sentence types](skills/ears-requirements/references/ears-reference.adoc):
+Behavioral specifications use Gherkin's Given/When/Then syntax. Each scenario is simultaneously a user requirement, an acceptance criterion, and an executable test:
 
-| Type | Pattern | Use for |
-|------|---------|---------|
-| Ubiquitous | The \<system\> shall \<response\>. | Always-on behavior |
-| Event-driven | When \<trigger\>, the \<system\> shall \<response\>. | User actions or events |
-| State-driven | While \<state\>, the \<system\> shall \<response\>. | Behavior during a state |
-| Unwanted behavior | If \<trigger\>, then the \<system\> shall \<response\>. | Errors and edge cases |
-| Optional | Where \<feature\>, the \<system\> shall \<response\>. | Feature-dependent behavior |
+```gherkin
+@shopping-cart
+Feature: Cart Management
+  As a shopper,
+  I want to add products to my cart and manage quantities,
+  so that I can purchase multiple items at once.
+
+  @CART-001
+  Scenario: Add product to cart
+    Given a product "Widget" exists
+    When I add "Widget" to the cart
+    Then the cart count should be 1
+    And I should see a confirmation "Widget added to cart"
+
+  @CART-002
+  Scenario: Adding duplicate product increments quantity
+    Given "Widget" is in my cart with quantity 1
+    When I add "Widget" to the cart
+    Then "Widget" should have quantity 2 in my cart
+```
+
+- `Feature:` description = the user story (As a / I want / So that)
+- `Scenario:` = the specification + test (Given/When/Then)
+- `@CART-001` = the spec requirement ID (for traceability)
+- Scenarios are technology-agnostic -- step definitions handle the internal mapping
 
 ## Example
 
@@ -402,26 +398,33 @@ The orchestrator produces:
 ```
 docs/features/
 ├── product-browsing/
-│   ├── user-stories.adoc   # 2 stories: View Catalog, Search
-│   ├── spec.adoc            # PROD-001 through PROD-008
-│   ├── design.adoc          # Frontend + API design
-│   └── tasks.adoc           # 3 phases, 8 tasks
+│   ├── product-catalog.feature  # @PROD-001 through @PROD-004
+│   ├── product-search.feature   # @PROD-005 through @PROD-008
+│   ├── steps/                   # Step definitions (glue code)
+│   ├── design.adoc              # Frontend + API design
+│   └── tasks.adoc               # 3 phases, 8 tasks
 ├── shopping-cart/
-│   ├── user-stories.adoc   # 2 stories: Add to Cart, View Cart
-│   ├── spec.adoc            # CART-001 through CART-008
-│   ├── design.adoc          # CartService + UI design
-│   └── tasks.adoc           # 3 phases, 9 tasks
+│   ├── cart-management.feature  # @CART-001 through @CART-005
+│   ├── steps/                   # Step definitions (glue code)
+│   ├── design.adoc              # CartService + UI design
+│   └── tasks.adoc               # 3 phases, 9 tasks
 └── checkout/
-    ├── user-stories.adoc   # 1 story: Checkout Process
-    ├── spec.adoc            # CHK-001 through CHK-006
-    ├── design.adoc          # Payment flow design
-    └── tasks.adoc           # 3 phases, 7 tasks
+    ├── checkout-process.feature # @CHK-001 through @CHK-005
+    ├── steps/                   # Step definitions (glue code)
+    ├── design.adoc              # Payment flow design
+    └── tasks.adoc               # 3 phases, 7 tasks
 
 docs/adrs/
 ├── index.adoc
 ├── 0001-use-typescript.adoc
 ├── 0002-use-postgresql.adoc
 └── 0003-use-stripe.adoc
+
+docs/supply-reviews/
+├── _index.adoc              # Audit summary (after full audit)
+├── stripe.adoc              # Per-dependency review
+├── next.adoc
+└── react.adoc
 
 docs/architecture.adoc
 docs/constraints.adoc
@@ -436,5 +439,4 @@ docs/state-log.adoc
 
 ## Reference
 
-- [EARS Quick Reference](skills/ears-requirements/references/ears-reference.adoc) -- Requirement syntax standard
 - [Example Session](skills/proven-needs/references/example-session.adoc) -- Full walkthrough of feature and maintenance intents
