@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=../schemas/adr.schema.json
+
+$id: https://provenimpact.github.io/proven-needs/schemas/adr-v1.0.0.schema.json
+id: ADR-0005
+title: Adopt Test-Driven Development
+status: Accepted
+date: "2026-02-20"
+deciders: Engineering team
+
+context: >-
+  The project needs a repeatable automated testing strategy that preserves
+  traceability from feature requirements through implementation and regression
+  coverage.
+
+decision: >-
+  Adopt test-driven development for feature work. Tests are derived from
+  feature specifications before implementation and serve as an acceptance gate
+  for completed work.
+
+consequences:
+  easier:
+    - Requirement-to-test traceability stays explicit throughout delivery
+    - Regression protection is established before production code is added
+    - Verification becomes more consistent across features
+  harder:
+    - Each implementation step includes an additional test-derivation phase
+    - Initial feature delivery may take longer while the test suite grows
+
+alternatives:
+  - name: Manual verification only
+    reason_rejected: >-
+      Lower upfront cost, but it provides weaker regression protection and less
+      repeatable verification.
+
+  - name: Test-after implementation
+    reason_rejected: >-
+      Better than manual-only verification, but it weakens the spec-driven
+      workflow by making tests follow code instead of driving it.

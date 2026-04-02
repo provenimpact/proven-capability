@@ -40,7 +40,7 @@ User chooses: **No** (manual verification for now).
 
 === Step 3: Feature Decomposition (Two-Pass)
 
-**Pass 1:** Invoke `needs-features` with temporary slug `_drafts` to derive user stories and EARS requirements from the intent.
+**Pass 1:** Derive user stories and linked EARS requirements as transient working output. No feature package or schema-validated `spec.yaml` is created yet.
 
 Analyze story cohesion and propose feature grouping:
 
@@ -66,7 +66,7 @@ Adjust grouping?
 
 User confirms the grouping.
 
-**Pass 2:** For each confirmed feature, invoke `needs-features` with the final slug to create `spec.yaml` with proper feature-scoped IDs. Run `python skills/needs-features/scripts/validate-specs.py` on each spec. Remove temporary `_drafts` directory.
+**Pass 2:** For each confirmed feature, invoke `needs-features` with the final slug to create `spec.yaml` with proper feature-scoped IDs. Run `python skills/needs-features/scripts/validate-specs.py` on each spec. Discard the transient draft output.
 
 === Step 4: Evaluate Feasibility
 
@@ -84,7 +84,7 @@ Technology decisions will emerge during design (framework, database, payment pro
 Transition plan:
 
 For each feature (product-browsing, shopping-cart, checkout):
-  1. needs-features: Create spec.yaml (stories + EARS requirements)
+  1. needs-features: Create spec.yaml (stories + linked EARS requirements)
   2. needs-design: Create implementation design
   3. needs-tasks: Create task graph (DAG with depends_on)
   4. needs-implementation: Implement code changes
@@ -107,13 +107,15 @@ User confirms.
 
 === Step 5: Execute Transition
 
+Before invoking the first capability, the orchestrator appends an `In Progress` entry to `docs/state-log.adoc` so the transition can be resumed or closed out if execution is interrupted.
+
 ==== Feature 1: product-browsing
 
 1. **needs-features** creates `docs/features/product-browsing/spec.yaml` v1.0.0 (prefix: PROD, 2 stories, 8 requirements). Schema validation passes.
 2. **needs-design** creates `docs/features/product-browsing/design.adoc` v1.0.0 (`:source-spec-version: 1.0.0`)
-   - During Phase 0, identifies technology decisions: framework choice, database choice
-   - Invokes **needs-adr** to create ADR-0001 (TypeScript) and ADR-0002 (PostgreSQL)
-3. **needs-tasks** creates `docs/features/product-browsing/tasks.yaml` v3.0.0 (8 tasks, DAG with depends_on)
+   - During Phase 0, identifies technology decisions: language choice, framework choice, database choice
+   - Invokes **needs-adr** to create ADR-0001 (TypeScript), ADR-0002 (PostgreSQL), and ADR-0003 (Next.js)
+3. **needs-tasks** creates `docs/features/product-browsing/tasks.yaml` v1.0.0 (8 tasks, DAG with depends_on)
 4. **needs-implementation** implements code following task DAG order (root tasks first, then dependent tasks in parallel)
 5. **Divergence check:** needs-implementation reports no divergences
 
@@ -122,7 +124,7 @@ User confirms.
 1. **needs-features** creates `docs/features/shopping-cart/spec.yaml` v1.0.0 (prefix: CART, 2 stories, 7 requirements). Schema validation passes.
 2. **needs-design** creates `docs/features/shopping-cart/design.adoc` v1.0.0
    - References existing ADRs, no new decisions needed
-3. **needs-tasks** creates `docs/features/shopping-cart/tasks.yaml` v3.0.0 (9 tasks, DAG with depends_on)
+3. **needs-tasks** creates `docs/features/shopping-cart/tasks.yaml` v1.0.0 (9 tasks, DAG with depends_on)
 4. **needs-implementation** implements code following task DAG order
 5. **Divergence check:** needs-implementation reports 1 divergence:
 +
@@ -144,8 +146,8 @@ Orchestrator invokes **needs-design** (reconciliation mode) to update `design.ad
 1. **needs-features** creates `docs/features/checkout/spec.yaml` v1.0.0 (prefix: CHK, 1 story, 5 requirements). Schema validation passes.
 2. **needs-design** creates `docs/features/checkout/design.adoc` v1.0.0
    - During Phase 0, identifies payment provider decision
-   - Invokes **needs-adr** to create ADR-0003 (Stripe)
-3. **needs-tasks** creates `docs/features/checkout/tasks.yaml` v3.0.0 (7 tasks, DAG with depends_on)
+   - Invokes **needs-adr** to create ADR-0004 (Stripe)
+3. **needs-tasks** creates `docs/features/checkout/tasks.yaml` v1.0.0 (7 tasks, DAG with depends_on)
 4. **needs-implementation** implements code following task DAG order
 5. **Divergence check:** needs-implementation reports no divergences
 
@@ -160,8 +162,8 @@ Re-observe current state:
 ....
 Current state:
   Features: 3 (product-browsing [implemented], shopping-cart [implemented], checkout [implemented])
-  Constraints: 6 rules, 0 violations
-  ADRs: 3 accepted
+  Constraints: 10 rules, 0 violations
+  ADRs: 4 accepted
   Architecture: v1.0.0 (current)
   Codebase: TypeScript/Next.js, build passing
 ....
@@ -171,6 +173,8 @@ Validation complete. The desired state appears to be achieved:
   - Constraints verified (all pass)
   - Build passing
 
+Approving this transition will record :result: Achieved in the state log.
+
 ....
 Do you approve this transition as achieved?
   1. Yes -- record Achieved
@@ -179,7 +183,9 @@ Do you approve this transition as achieved?
 
 User approves.
 
-=== Step 7: Record Transition
+=== Step 7: Finalize Transition Record
+
+The existing `In Progress` state-log entry is updated to `Achieved` after the user approves the completed transition.
 
 ....
 == TRANSITION-001
@@ -194,7 +200,7 @@ User approves.
 :capabilities-invoked: needs-features, needs-design, needs-adr, needs-tasks, needs-implementation, needs-architecture
 :constraints-checked: Security (pass), Architecture (pass), Quality (pass), Licensing (pass)
 :result: Achieved
-:artifacts-modified: spec.yaml (3 features), design.adoc (3), tasks.yaml (3), 3 ADRs, architecture.adoc, source code
+:artifacts-modified: spec.yaml (3 features), design.adoc (3), tasks.yaml (3), 4 ADRs, architecture.adoc, source code
 ....
 
 ---

@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../schemas/adr.schema.json
+
+$id: https://provenimpact.github.io/proven-needs/schemas/adr-v1.0.0.schema.json
+id: ADR-0004
+title: Use Stripe for Payment Processing
+status: Accepted
+date: "2026-02-20"
+deciders: Engineering team
+
+context: >-
+  The checkout feature needs card payment processing, failure handling, and a
+  compliant way to manage sensitive payment data without building payment
+  infrastructure in-house.
+
+decision: >-
+  Use Stripe as the payment processor for checkout and delegated handling of
+  payment-sensitive workflows.
+
+consequences:
+  easier:
+    - PCI-sensitive payment flows are handled by a mature third-party platform
+    - Strong support for test environments, webhooks, and failure simulation
+    - Broad ecosystem support for subscription and one-time payment flows
+  harder:
+    - The application depends on an external provider for payment availability
+    - Stripe-specific concepts shape parts of the checkout integration
+
+alternatives:
+  - name: Build direct card processing integration
+    reason_rejected: >-
+      Gives more control, but substantially increases compliance and security
+      burden for the team.
+
+  - name: PayPal-only checkout
+    reason_rejected: >-
+      Familiar consumer brand, but it does not match the desired card-first
+      checkout experience for this example project.

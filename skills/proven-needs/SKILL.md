@@ -10,7 +10,7 @@ Continuously evolve a software system by declaring a desired state, evaluating i
 ## State Transition Loop
 
 ```
-Observe -> Declare -> Evaluate -> Derive -> Execute -> Validate -> Repeat
+Observe -> Declare -> Evaluate -> Derive -> Execute -> Validate -> Approve -> Repeat
 ```
 
 1. **Observe** -- capture the current state (automated)
@@ -18,8 +18,9 @@ Observe -> Declare -> Evaluate -> Derive -> Execute -> Validate -> Repeat
 3. **Evaluate** -- test feasibility against current state and constraints
 4. **Derive** -- determine the minimal transition plan
 5. **Execute** -- invoke capabilities to apply changes
-6. **Validate** -- verify the desired state is now true
-7. **Repeat** -- declare the next desired state
+6. **Validate** -- verify the desired state appears to be true
+7. **Approve** -- ask the user whether to record the transition as achieved
+8. **Repeat** -- declare the next desired state
 
 ## Core Concepts
 
@@ -62,12 +63,12 @@ A self-contained unit of work scoped to one feature. Lives in `docs/features/<sl
 
 ```
 docs/features/<slug>/
-  spec.yaml            # WHY + WHAT: user stories + EARS requirements (schema-validated)
+  spec.yaml            # WHY + WHAT: user stories + linked EARS requirements (schema-validated)
   design.adoc          # HOW: implementation blueprint
   tasks.yaml           # WORK: task graph (DAG with explicit depends_on)
 ```
 
-The `spec.yaml` file combines user stories and EARS requirements in one artifact. Each story contains the requirements that resolve it. The file is validated by a JSON schema (`skills/needs-features/schemas/feature-spec.schema.json`) and a consistency checking script (`skills/needs-features/scripts/validate-specs.py`).
+The `spec.yaml` file combines user stories and linked EARS requirements in one artifact. Stories hold narrative intent. Requirements live at the top level and each links to one or more stories it resolves. The file is validated by a JSON schema (`skills/needs-features/schemas/feature-spec.schema.json`) and a consistency checking script (`skills/needs-features/scripts/validate-specs.py`).
 
 Each feature package is fully independent -- it can be specified, designed, and implemented without reading other feature packages. Feature designs reference project-wide ADRs and architecture but never other feature designs.
 
@@ -97,7 +98,7 @@ These operate within a single feature package:
 
 | Capability | Skill | Domain |
 |---|---|---|
-| Features | `needs-features` | Create/update user stories + EARS requirements (spec.yaml) |
+| Features | `needs-features` | Create/update user stories + linked EARS requirements (spec.yaml) |
 | Design | `needs-design` | Create implementation blueprint for a feature |
 | Tasks | `needs-tasks` | Break design into task graph (DAG with depends_on) |
 | Tests | `needs-tests` | Derive tests for a single task before implementation (opt-in, requires ADR) |
@@ -131,7 +132,7 @@ When this skill is invoked, immediately build the current state model:
 
 1. **`docs/constraints.yaml`** -- read all constraint categories and rules. If missing, note that no constraints are defined. Do not create it automatically -- the user declares constraints intentionally.
 
-2. **`docs/features/`** -- list all feature directories. For each, check which artifacts exist (`spec.yaml`, `design.adoc`, `tasks.yaml`). Features with `:status: Archived` in `spec.yaml` are reported in the summary but skipped during intent classification and staleness checks.
+2. **`docs/features/`** -- list all feature directories. For each, check which artifacts exist (`spec.yaml`, `design.adoc`, `tasks.yaml`). Treat every directory present in the current checkout as active project state. Archived or removed features live in git history, not as an in-band status inside `spec.yaml`.
 
 3. **`docs/adrs/`** -- read the index, note how many ADRs exist and their statuses. Pay particular attention to any ADR about TDD/automated testing -- this determines whether `needs-tests` is available.
 
@@ -235,12 +236,12 @@ flowchart TD
     CHECK -->|Yes: Evolution| EV_P1
 
     subgraph greenfield ["Greenfield Path"]
-        GF_P1["Pass 1: Draft stories+reqs<br/>into _drafts/ temp slug"]
+        GF_P1["Pass 1: Draft stories+reqs<br/>as transient working output"]
         GF_COHESION["Analyze cohesion<br/>(shared data, journey,<br/>independent value)"]
         GF_PROPOSE["Propose feature<br/>groupings to user"]
         GF_CONFIRM{User<br/>confirms?}
         GF_P2["Pass 2: Distribute stories<br/>into feature packages"]
-        GF_CLEANUP["Remove _drafts/"]
+        GF_CLEANUP["Discard transient draft output"]
 
         GF_P1 --> GF_COHESION
         GF_COHESION --> GF_PROPOSE
@@ -251,12 +252,12 @@ flowchart TD
     end
 
     subgraph evolution ["Evolution Path"]
-        EV_P1["Pass 1: Draft stories+reqs<br/>into _drafts/ temp slug"]
+        EV_P1["Pass 1: Draft stories+reqs<br/>as transient working output"]
         EV_CLASSIFY["Classify against<br/>existing features<br/>(extends / new / updates)"]
         EV_PROPOSE["Present mapping<br/>to user"]
         EV_CONFIRM{User<br/>confirms?}
         EV_P2["Pass 2: Distribute<br/>(add to existing /<br/>create new packages)"]
-        EV_CLEANUP["Remove _drafts/"]
+        EV_CLEANUP["Discard transient draft output"]
 
         EV_P1 --> EV_CLASSIFY
         EV_CLASSIFY --> EV_PROPOSE
@@ -272,11 +273,11 @@ flowchart TD
 
 **When no features exist yet (greenfield):**
 
-This uses a two-pass approach because `needs-features` operates within a feature package (requires a slug), but feature groupings aren't known until stories are drafted.
+This uses a two-pass approach because story and requirement derivation must happen before the final feature grouping is known.
 
-**Pass 1 -- Draft stories with a temporary slug:**
+**Pass 1 -- Draft stories as transient working output:**
 
-1. Invoke `needs-features` with a temporary working slug (e.g., `_drafts`) to derive user stories and requirements from the intent. This produces an initial spec.yaml without committing to a feature structure.
+1. Derive user stories and linked requirements from the intent as transient working output. Do not create a real feature package or write a schema-validated `spec.yaml` for this draft pass.
 2. Analyze story cohesion to propose feature groupings:
    - Stories that share the same data entities -> same feature
    - Stories in the same user journey -> same feature
@@ -306,11 +307,11 @@ This uses a two-pass approach because `needs-features` operates within a feature
 **Pass 2 -- Distribute stories into feature packages:**
 
 5. For each confirmed feature, invoke `needs-features` with the final slug to create the feature's `spec.yaml`, distributing the drafted stories into their assigned feature packages. IDs are reassigned to be sequential within each feature.
-6. Remove the temporary `_drafts` directory if it was created on disk.
+6. Discard the transient draft output once the real feature packages are created.
 
 **When features already exist (evolution):**
 
-Same two-pass approach. Stories are drafted first, then classified against existing features.
+Same two-pass approach. Stories are drafted first as transient working output, then classified against existing features.
 
 **Constraint surfacing during decomposition:**
 
@@ -433,7 +434,7 @@ Store the user's choice for the duration of this transition. Default to **Intera
 
 ### 5. Execute Transition
 
-**Before invoking the first capability**, append an `In Progress` entry to `docs/state-log.adoc` with the fields known so far: `:date:`, `:intent:`, `:type:`, `:risk:`, `:features:`, `:desired-state:`, `:prior-state:`, `:capabilities-planned:`, and `:result: In Progress`. Leave `:capabilities-invoked:`, `:constraints-checked:`, and `:artifacts-modified:` empty -- these are filled in when the transition completes or is stopped.
+**Before invoking the first capability**, append an `In Progress` entry to `docs/state-log.adoc` with the fields known so far: `:date:`, `:intent:`, `:type:`, `:risk:`, `:features:`, `:desired-state:`, `:prior-state:`, `:capabilities-planned:`, and `:result: In Progress`. Leave `:capabilities-invoked:`, `:constraints-checked:`, and `:artifacts-modified:` empty -- these are filled in when the transition completes or is stopped. This early write is required so interrupted transitions can be resumed or explicitly closed out later.
 
 Invoke capabilities in the derived order by loading each capability skill. For each capability:
 
@@ -632,7 +633,7 @@ Each constraint has a unique ID (C-001, C-002, ...) for traceability. Constraint
 Every capability checks relevant constraints during its Evaluate phase:
 - `needs-features`: checks quality constraints (testability, completeness) and that requirements do not duplicate project-wide constraints
 - `needs-design`: checks architecture constraints
-- `needs-tasks`: checks quality constraints (testing tasks exist if coverage constraints apply)
+- `needs-tasks`: checks quality constraints and preserves per-task traceability for downstream test derivation
 - `needs-tests`: checks quality constraints (coverage thresholds, test requirements)
 - `needs-implementation`: checks quality, performance, architecture constraints
 - `needs-dependencies`: checks licensing, security constraints
@@ -698,11 +699,6 @@ stateDiagram-v2
     Designed --> Planned : tasks.yaml created (Current)
     Planned --> Implemented : implementation complete
 
-    Specified --> Archived : archived
-    Designed --> Archived : archived
-    Planned --> Archived : archived
-    Implemented --> Archived : archived
-    Archived --> Specified : un-archived
 ```
 
 | Artifacts Present | Derived Status |
@@ -711,7 +707,8 @@ stateDiagram-v2
 | + design.adoc (status: Current) | `Designed` |
 | + tasks.yaml (status: Current) | `Planned` |
 | Implementation complete, all requirements verified | `Implemented` |
-| `:status: Archived` in spec.yaml | `Archived` |
+
+Archived or removed features are represented by git history, not by an in-band feature status field inside `spec.yaml`.
 
 ### Artifact versioning within features
 

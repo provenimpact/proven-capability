@@ -39,7 +39,7 @@ Read `docs/features/<slug>/design.adoc` if it exists. Extract system design sect
 
 Read `docs/features/<slug>/spec.yaml` if it exists for behavioral context:
 - Story narratives for understanding user intent
-- Requirement texts and EARS types for understanding expected behavior
+- Requirement texts, linked story IDs, and EARS types for understanding expected behavior
 - Verification descriptions for understanding acceptance criteria
 
 **If missing:** Note that implementation must rely on the declared transition inputs and existing codebase context.
@@ -274,7 +274,7 @@ When implementing directly from the design without a task list:
 When implementing directly from the spec without tasks or design:
 
 1. Read one story at a time from `docs/features/<slug>/spec.yaml`.
-2. For each story, implement the minimum code needed to satisfy its requirements and verification descriptions.
+2. For each story, gather the top-level requirements linked to that story and implement the minimum code needed to satisfy their verification descriptions.
 3. Use existing codebase conventions and constraints to choose structure; do not invent architecture that contradicts project patterns.
 4. Verify after each story (build, lint, typecheck, run tests if TDD is adopted).
 5. Commit after each story with a scope-focused message.

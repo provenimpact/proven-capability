@@ -2,7 +2,7 @@
 
 == Context
 
-The project has an accepted ADR (`docs/adrs/0004-adopt-tdd.yaml`) recording the decision to use TDD. The test framework is Vitest (detected from `vitest.config.ts`).
+The project has an accepted ADR (`docs/adrs/0005-adopt-tdd.yaml`) recording the decision to use TDD. The test framework is Vitest (detected from `vitest.config.ts`).
 
 This example shows test derivation for the `product-browsing` feature from `docs/features/product-browsing/spec.yaml`.
 
@@ -20,31 +20,35 @@ stories:
       as_a: shopper
       i_want: to browse available products
       so_that: I can find items I want to purchase
-    requirements:
-      - id: PROD-001
-        text: The system shall display products in a grid or list format.
-        ears_type: ubiquitous
-        verification: >-
-          Navigate to the product listing page. Confirm that products are
-          displayed in a grid or list layout.
 
-      - id: PROD-002
-        text: >-
-          The system shall show the name, price, and image for each product
-          in the listing.
-        ears_type: ubiquitous
-        verification: >-
-          View the product listing. Confirm each product displays its name,
-          price, and image.
+requirements:
+  - id: PROD-001
+    stories: [US-001]
+    text: The system shall display products in a grid or list format.
+    ears_type: ubiquitous
+    verification: >-
+      Navigate to the product listing page. Confirm that products are
+      displayed in a grid or list layout.
 
-      - id: PROD-003
-        text: >-
-          When the user selects a category filter, the system shall display
-          only products in that category.
-        ears_type: event-driven
-        verification: >-
-          Select a category filter. Confirm that only products in the
-          selected category are displayed.
+  - id: PROD-002
+    stories: [US-001]
+    text: >-
+      The system shall show the name, price, and image for each product in
+      the listing.
+    ears_type: ubiquitous
+    verification: >-
+      View the product listing. Confirm each product displays its name,
+      price, and image.
+
+  - id: PROD-003
+    stories: [US-001]
+    text: >-
+      When the user selects a category filter, the system shall display only
+      products in that category.
+    ears_type: event-driven
+    verification: >-
+      Select a category filter. Confirm that only products in the selected
+      category are displayed.
 ----
 
 == Output: tests/features/product-browsing/catalog.test.ts
@@ -96,7 +100,7 @@ describe("US-001: View Product Catalog", () => {
 == Notes
 
 - Test descriptions include the requirement ID (e.g., `PROD-001:`) for traceability
-- Tests are grouped by story ID in describe blocks
+- Tests can still be grouped by story ID in describe blocks, even though requirements are stored at the top level and linked back to stories
 - In TDD mode, these tests are written BEFORE the production code. They will fail initially and drive the implementation.
 - The test implementations use the design document to understand what components exist (ProductCatalog, test factories, etc.)
 - Each test verifies exactly what the `verification` field in the spec describes
@@ -110,7 +114,7 @@ For reference, the ADR that enables `needs-tests`:
 [source,yaml]
 ----
 $id: https://provenimpact.github.io/proven-needs/schemas/adr-v1.0.0.schema.json
-id: ADR-0004
+id: ADR-0005
 title: Adopt Test-Driven Development
 status: Accepted
 date: "2026-02-20"

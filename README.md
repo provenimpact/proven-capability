@@ -24,12 +24,15 @@ flowchart TD
         EVALUATE -->|Violation| BLOCK
         DERIVE --> EXECUTE
         EXECUTE --> VALIDATE
-        VALIDATE -->|Achieved| LOG
+        VALIDATE -->|Appears achieved| APPROVE
         VALIDATE -->|Not achieved| OBSERVE
+        APPROVE -->|Approved| LOG
+        APPROVE -->|Rejected| OBSERVE
     end
 
     BLOCK["Constraint Violation<br/><i>Revise, update constraint,<br/>or abort</i>"] -->|Revised| EVALUATE
-    LOG["Record in<br/>state-log.adoc"] --> NEXT
+    APPROVE["User Approval<br/><i>Confirm transition<br/>is achieved</i>"]
+    LOG["Finalize existing<br/>state-log entry"] --> NEXT
     NEXT((Declare next<br/>desired state)) --> OBSERVE
 
     style START fill:#4CAF50,color:#fff,stroke:none
@@ -43,7 +46,8 @@ flowchart TD
 3. **Evaluate** feasibility against constraints
 4. **Derive** the minimal transition plan (which capabilities to invoke)
 5. **Execute** the transition
-6. **Validate** the desired state is now true
+6. **Validate** the desired state appears to be true
+7. **Approve** the achieved transition before finalizing the existing state-log entry
 
 The system figures out what needs to happen. You declare what must be true.
 
@@ -189,15 +193,15 @@ Self-contained units of work at `docs/features/<slug>/`:
 
 ```
 docs/features/shopping-cart/
-  spec.yaml            # WHY + WHAT: user stories + EARS requirements
+  spec.yaml            # WHY + WHAT: user stories + linked EARS requirements
   design.adoc          # HOW: implementation blueprint
   tasks.yaml           # WORK: task graph (DAG with explicit depends_on)
 ```
 
-The `spec.yaml` file combines user stories and EARS requirements in a single schema-validated artifact:
+The `spec.yaml` file combines user stories and linked EARS requirements in a single schema-validated artifact:
 
 ```yaml
-$id: https://provenimpact.github.io/proven-needs/schemas/feature-spec-v1.0.0.schema.json
+$id: https://provenimpact.github.io/proven-needs/schemas/feature-spec-v2.0.0.schema.json
 feature: shopping-cart
 prefix: CART
 version: "1.0.0"
@@ -210,18 +214,21 @@ stories:
       as_a: shopper
       i_want: to add products to my cart
       so_that: I can purchase multiple items at once
-    requirements:
-      - id: CART-001
-        text: >-
-          When the user clicks the add-to-cart button on a product, the
-          system shall add the product to the cart and update the cart count.
-        ears_type: event-driven
-        verification: >-
-          Click add-to-cart. Confirm cart count increases by one.
+
+requirements:
+  - id: CART-001
+    stories: [US-001]
+    text: >-
+      When the user clicks the add-to-cart button on a product, the system
+      shall add the product to the cart and update the cart count.
+    ears_type: event-driven
+    verification: >-
+      Click add-to-cart. Confirm cart count increases by one.
 ```
 
 - Each story has the user story narrative (As a / I want / So that)
-- Requirements use EARS syntax and are directly under the story they resolve
+- Requirements use EARS syntax and link to the stories they resolve
+- A requirement can be linked to multiple stories when the same behavior applies
 - Every requirement has a unique ID, EARS type, and black-box verification
 - The schema is enforced by `skills/needs-features/scripts/validate-specs.py`
 
@@ -234,7 +241,7 @@ Testing is opt-in, controlled by an ADR decision. When a project adopts TDD:
 - The orchestrator prompts for this decision on the first feature evolution intent
 
 ### State Log
-Append-only audit trail at `docs/state-log.adoc` recording every transition: what was intended, which capabilities were planned, what changed, and what was verified.
+Append-only audit trail at `docs/state-log.adoc` recording every transition: what was intended, which capabilities were planned, what changed, what was verified, and whether the user approved the transition as achieved. Each transition is opened as `In Progress` before execution starts and finalized when the transition is achieved, stopped, or fails.
 
 ## Capabilities
 
@@ -242,7 +249,7 @@ Append-only audit trail at `docs/state-log.adoc` recording every transition: wha
 
 | Capability | Skill | What it does |
 |---|---|---|
-| Features | `needs-features` | Create user stories + EARS requirements (spec.yaml) |
+| Features | `needs-features` | Create user stories + linked EARS requirements (spec.yaml) |
 | Design | `needs-design` | Create implementation blueprint (HOW) |
 | Tasks | `needs-tasks` | Break design into task graph (DAG with depends_on) |
 | Tests | `needs-tests` | Derive tests for a single task before implementation (opt-in) |

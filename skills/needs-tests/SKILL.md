@@ -18,7 +18,7 @@ Assess the current state of tests for the specified task.
 
 ### 1. Read feature spec
 
-Read `docs/features/<slug>/spec.yaml`. Extract all requirement IDs, EARS requirement texts, types, and verification descriptions for the requirements this task satisfies.
+Read `docs/features/<slug>/spec.yaml`. Extract all requirement IDs, linked story IDs, EARS requirement texts, types, and verification descriptions for the requirements this task satisfies.
 
 **If missing:** Report to the orchestrator that the spec is missing. Tests cannot be derived without specifications -- the verification descriptions in the spec are the primary source for test cases.
 

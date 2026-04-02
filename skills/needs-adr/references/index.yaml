@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=../schemas/adr-index.schema.json
 
 $id: https://provenimpact.github.io/proven-needs/schemas/adr-index-v1.0.0.schema.json
-version: "1.0.0"
-last_updated: "2026-02-19"
+version: "1.1.0"
+last_updated: "2026-02-20"
 
 decisions:
   - id: ADR-0001
@@ -16,3 +16,21 @@ decisions:
     status: Accepted
     date: "2026-02-19"
     file: 0002-use-postgresql.yaml
+
+  - id: ADR-0003
+    title: Use Next.js as the Fullstack Framework
+    status: Accepted
+    date: "2026-02-19"
+    file: 0003-use-nextjs.yaml
+
+  - id: ADR-0004
+    title: Use Stripe for Payment Processing
+    status: Accepted
+    date: "2026-02-20"
+    file: 0004-use-stripe.yaml
+
+  - id: ADR-0005
+    title: Adopt Test-Driven Development
+    status: Accepted
+    date: "2026-02-20"
+    file: 0005-adopt-tdd.yaml

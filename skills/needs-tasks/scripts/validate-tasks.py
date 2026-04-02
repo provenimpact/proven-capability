@@ -121,8 +121,8 @@ def load_spec_ids(
     story_ids = set()
     for story in spec.get("stories", []):
         story_ids.add(story["id"])
-        for req in story.get("requirements", []):
-            req_ids.add(req["id"])
+    for req in spec.get("requirements", []):
+        req_ids.add(req["id"])
 
     return req_ids, story_ids
 

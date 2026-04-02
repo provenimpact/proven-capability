@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../schemas/adr.schema.json
+
+$id: https://provenimpact.github.io/proven-needs/schemas/adr-v1.0.0.schema.json
+id: ADR-0003
+title: Use Next.js as the Fullstack Framework
+status: Accepted
+date: "2026-02-19"
+deciders: Engineering team
+
+context: >-
+  The e-commerce application needs a consistent way to deliver server-rendered
+  product pages, interactive cart flows, and backend endpoints without splitting
+  the codebase across multiple frameworks.
+
+decision: >-
+  Use Next.js as the primary fullstack framework for the web application,
+  including server-rendered pages, client-side interactions, and API routes.
+
+consequences:
+  easier:
+    - Shared routing and build tooling across frontend and backend concerns
+    - First-class support for server rendering and incremental feature delivery
+    - Simpler deployment model for a single web application
+  harder:
+    - Framework conventions constrain some architectural choices
+    - Backend execution model is coupled to the web framework runtime
+
+alternatives:
+  - name: Separate React frontend and Express API
+    reason_rejected: >-
+      Clear separation of concerns, but it adds more deployment and integration
+      overhead for an early-stage product.
+
+  - name: Remix
+    reason_rejected: >-
+      Strong fullstack model, but the team already has more operational
+      familiarity with Next.js and its ecosystem.

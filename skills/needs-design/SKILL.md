@@ -1,6 +1,6 @@
 ---
 name: needs-design
-description: Create and maintain implementation design documents for a feature. Use when the proven-needs orchestrator determines that a feature needs a design created, updated, or synced with upstream changes. Operates within a single feature package at docs/features/<slug>/. The design document is a living document that explains HOW the feature works -- the implementation blueprint that solves the requirements in spec.yaml, constrained by project-wide ADRs and constraints. It stays in sync with spec.yaml throughout the feature's lifecycle. Each feature design is fully independent and can be implemented without reading other feature designs.
+description: Create and maintain implementation design documents for a feature. Use when the proven-needs orchestrator determines that a feature needs a design created, updated, or synced with upstream changes. Operates within a single feature package at docs/features/<slug>/. The design document is a living document that explains HOW the feature works -- the implementation blueprint that solves the top-level linked requirements in spec.yaml, constrained by project-wide ADRs and constraints. It stays in sync with spec.yaml throughout the feature's lifecycle. Each feature design is fully independent and can be implemented without reading other feature designs.
 ---
 
 ## Prerequisites
@@ -17,7 +17,7 @@ Assess the current state of the design for this feature.
 
 Read `docs/features/<slug>/spec.yaml`. Extract:
 - All story IDs, titles, and narratives
-- All requirement IDs, EARS texts, types, and verifications
+- All requirement IDs, linked story IDs, EARS texts, types, and verifications
 - The feature prefix
 
 **If missing:** Report to the orchestrator that the spec is missing. The orchestrator decides whether to invoke `needs-features` first.
@@ -198,7 +198,7 @@ For each user story in this feature's `spec.yaml`, describe:
 - **How each requirement is satisfied** by the design
 - **Which requirement IDs are covered** by which design elements
 
-This section is the proof that the design solves the requirements. Every story must appear here. Every requirement ID (e.g., `PROD-001`) must be mapped to at least one design element.
+This section is the proof that the design solves the requirements. Every story must appear here. Every requirement ID (e.g., `PROD-001`) must be mapped to at least one design element, and shared requirements should be reflected in each applicable story section.
 
 ### Write design files
 

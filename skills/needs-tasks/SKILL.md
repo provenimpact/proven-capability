@@ -31,7 +31,7 @@ Read `docs/features/<slug>/design.adoc`. Extract `:version:`, `:source-spec-vers
 
 Read `docs/features/<slug>/spec.yaml`. Extract:
 - All story IDs and titles
-- All requirement IDs, EARS texts, and verifications
+- All requirement IDs, linked story IDs, EARS texts, and verifications
 
 ### 3. Read existing task list
 
@@ -86,7 +86,7 @@ If tasks are design-driven and design provenance is stale, recommend updating th
 
 ### 3. Check constraints
 
-Verify that task organization respects quality constraints (e.g., test coverage must not decrease -- ensure testing tasks exist if the project uses TDD).
+Verify that task organization respects quality constraints (e.g., test coverage must not decrease). If the project uses TDD, keep implementation tasks traceable to requirements so the orchestrator can invoke `needs-tests` per task.
 
 ### 4. Report evaluation
 
@@ -126,7 +126,7 @@ When a design document exists, walk through it systematically to identify discre
 
 When design is absent, derive tasks directly from spec.yaml requirements:
 
-1. Read each story and its requirements
+1. Read each story and the top-level requirements linked to it
 2. For each story, create one or more tasks. Group related requirements into a single task when tightly coupled; split when independently implementable.
 3. For each task, record:
    - A clear, actionable title
@@ -265,7 +265,7 @@ Before finalizing, verify:
 - Each task is a discrete, implementable coding unit
 - Dependency structure reflects actual implementation order
 - At least one provenance field is recorded and all recorded source versions are correct
-- Quality constraints from `docs/constraints.yaml` are addressed (e.g., testing tasks exist if the project uses TDD per ADR decision)
+- Quality constraints from `docs/constraints.yaml` are addressed (e.g., implementation tasks remain traceable so `needs-tests` can derive executable tests per task when TDD is adopted)
 - The validation script passes: `python skills/needs-tasks/scripts/validate-tasks.py docs/features/<slug>/tasks.yaml`
 
 ## Reference

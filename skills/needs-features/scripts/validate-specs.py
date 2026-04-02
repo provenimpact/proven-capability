@@ -5,8 +5,9 @@ Validates feature specification YAML files against:
 2. ID uniqueness (no duplicate story IDs or requirement IDs within a feature)
 3. Prefix consistency (all requirement IDs use the declared prefix)
 4. Sequential numbering (IDs are sequential without gaps)
-5. Cross-feature uniqueness (no two features share the same prefix)
-6. EARS pattern compliance (requirement text matches declared type)
+5. Story linkage integrity (requirements only reference known stories; every story is covered)
+6. Cross-feature uniqueness (no two features share the same prefix)
+7. EARS pattern compliance (requirement text matches declared type)
 
 Usage:
   python skills/needs-features/scripts/validate-specs.py docs/features/*/spec.yaml
@@ -105,9 +106,9 @@ def validate_file(file_path: Path) -> tuple[list[str], dict | None]:
     # $id field version compatibility
     errors.extend(check_id_field(doc, label))
 
-    feature = doc["feature"]
     prefix = doc["prefix"]
     stories = doc["stories"]
+    requirements = doc["requirements"]
 
     # Story ID uniqueness
     story_ids = set()
@@ -118,17 +119,36 @@ def validate_file(file_path: Path) -> tuple[list[str], dict | None]:
 
     # Requirement ID uniqueness and prefix consistency
     req_ids = set()
-    for story in stories:
-        for req in story["requirements"]:
-            req_prefix = req["id"].split("-")[0]
-            if req_prefix != prefix:
+    for req in requirements:
+        req_prefix = req["id"].split("-")[0]
+        if req_prefix != prefix:
+            errors.append(
+                f'{label}: requirement {req["id"]} uses prefix "{req_prefix}" '
+                f'but feature declares prefix "{prefix}"'
+            )
+        if req["id"] in req_ids:
+            errors.append(f"{label}: duplicate requirement ID: {req['id']}")
+        req_ids.add(req["id"])
+
+    # Requirement story linkage integrity
+    story_ids_lookup = {story["id"] for story in stories}
+    covered_story_ids = set()
+    for req in requirements:
+        for story_id in req["stories"]:
+            if story_id not in story_ids_lookup:
                 errors.append(
-                    f'{label}: requirement {req["id"]} uses prefix "{req_prefix}" '
-                    f'but feature declares prefix "{prefix}"'
+                    f"{label}: requirement {req['id']} references unknown story ID: "
+                    f"{story_id}"
                 )
-            if req["id"] in req_ids:
-                errors.append(f"{label}: duplicate requirement ID: {req['id']}")
-            req_ids.add(req["id"])
+            else:
+                covered_story_ids.add(story_id)
+
+    uncovered_stories = story_ids_lookup - covered_story_ids
+    if uncovered_stories:
+        errors.append(
+            f"{label}: stories not referenced by any requirement: "
+            f"{', '.join(sorted(uncovered_stories))}"
+        )
 
     # Sequential story IDs
     story_nums = [int(s["id"].replace("US-", "")) for s in stories]
@@ -141,10 +161,9 @@ def validate_file(file_path: Path) -> tuple[list[str], dict | None]:
 
     # Sequential requirement IDs (across the whole feature)
     all_reqs = []
-    for story in stories:
-        for req in story["requirements"]:
-            num = int(req["id"].split("-")[1])
-            all_reqs.append((req["id"], num))
+    for req in requirements:
+        num = int(req["id"].split("-")[1])
+        all_reqs.append((req["id"], num))
 
     for i in range(1, len(all_reqs)):
         if all_reqs[i][1] <= all_reqs[i - 1][1]:
@@ -186,34 +205,33 @@ def validate_file(file_path: Path) -> tuple[list[str], dict | None]:
         ),
     }
 
-    for story in stories:
-        for req in story["requirements"]:
-            text = req["text"].strip()
-            ears_type = req["ears_type"]
+    for req in requirements:
+        text = req["text"].strip()
+        ears_type = req["ears_type"]
 
-            if ears_type in ears_checks:
-                pattern, msg = ears_checks[ears_type]
-                if not re.match(pattern, text, re.IGNORECASE):
-                    errors.append(
-                        f'{label}: {req["id"]}: ears_type is "{ears_type}" '
-                        f"but text does not {msg}"
-                    )
-            elif ears_type == "complex":
-                keywords = [
-                    kw
-                    for kw in ("Where", "While", "When", "If")
-                    if re.search(rf"\b{kw}\b", text, re.IGNORECASE)
-                ]
-                if len(keywords) < 2:
-                    errors.append(
-                        f'{label}: {req["id"]}: ears_type is "complex" but text '
-                        f"contains fewer than 2 EARS keywords (Where/While/When/If)."
-                    )
-
-            if not re.search(r"\bshall\b", text, re.IGNORECASE):
+        if ears_type in ears_checks:
+            pattern, msg = ears_checks[ears_type]
+            if not re.match(pattern, text, re.IGNORECASE):
                 errors.append(
-                    f'{label}: {req["id"]}: requirement text does not contain "shall".'
+                    f'{label}: {req["id"]}: ears_type is "{ears_type}" '
+                    f"but text does not {msg}"
                 )
+        elif ears_type == "complex":
+            keywords = [
+                kw
+                for kw in ("Where", "While", "When", "If")
+                if re.search(rf"\b{kw}\b", text, re.IGNORECASE)
+            ]
+            if len(keywords) < 2:
+                errors.append(
+                    f'{label}: {req["id"]}: ears_type is "complex" but text '
+                    f"contains fewer than 2 EARS keywords (Where/While/When/If)."
+                )
+
+        if not re.search(r"\bshall\b", text, re.IGNORECASE):
+            errors.append(
+                f'{label}: {req["id"]}: requirement text does not contain "shall".'
+            )
 
     return errors, doc
 

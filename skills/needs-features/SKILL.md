@@ -1,6 +1,6 @@
 ---
 name: needs-features
-description: Create and maintain feature specifications combining user stories with EARS requirements in a schema-validated YAML format. Use when the proven-needs orchestrator determines that a feature needs stories and requirements created or updated. Operates within a single feature package at docs/features/<slug>/. Stories explain WHY from the user's perspective. Requirements define WHAT must be true -- black-box testable specifications using EARS syntax that resolve each story.
+description: Create and maintain feature specifications combining user stories with reusable EARS requirements in a schema-validated YAML format. Use when the proven-needs orchestrator determines that a feature needs stories and requirements created or updated. Operates within a single feature package at docs/features/<slug>/. Stories explain WHY from the user's perspective. Requirements define WHAT must be true, are black-box testable, and link to one or more stories they resolve.
 ---
 
 ## Prerequisites
@@ -11,7 +11,7 @@ This skill is invoked by the `proven-needs` orchestrator, which provides the fea
 
 ## Artifact Format
 
-The feature specification is a single YAML file at `docs/features/<slug>/spec.yaml`. It combines user stories and their resolving EARS requirements in one artifact, validated by a JSON schema.
+The feature specification is a single YAML file at `docs/features/<slug>/spec.yaml`. It combines user stories and reusable top-level EARS requirements in one artifact, validated by a JSON schema.
 
 **Schema:** `skills/needs-features/schemas/feature-spec.schema.json`
 
@@ -21,7 +21,7 @@ The YAML file has this top-level structure:
 
 ```yaml
 # yaml-language-server: $schema=<path-to-schema>
-$id: https://provenimpact.github.io/proven-needs/schemas/feature-spec-v1.0.0.schema.json
+$id: https://provenimpact.github.io/proven-needs/schemas/feature-spec-v2.0.0.schema.json
 feature: <slug>
 prefix: <PREFIX>
 version: "1.0.0"
@@ -36,14 +36,16 @@ stories:
       as_a: <role>
       i_want: <goal>
       so_that: <benefit>
-    requirements:
-      - id: <PREFIX>-001
-        text: <EARS requirement text>
-        ears_type: <type>
-        verification: <black-box test description>
+
+requirements:
+  - id: <PREFIX>-001
+    stories: [US-001]
+    text: <EARS requirement text>
+    ears_type: <type>
+    verification: <black-box test description>
 ```
 
-Each user story contains the EARS requirements that resolve it. There are no separate acceptance criteria -- the requirements ARE the specification of what the story means in testable terms.
+Stories are narrative-only. Requirements are authored separately and linked to one or more stories through `requirements[].stories`. There are no separate acceptance criteria; the requirements ARE the specification of what the linked stories mean in testable terms.
 
 ## Observe
 
@@ -58,6 +60,7 @@ Look for `docs/features/<slug>/`. If the directory does not exist, note that thi
 If `docs/features/<slug>/spec.yaml` exists:
 - Read `version` and `last_updated`
 - Extract all story IDs and requirement IDs
+- Record story-to-requirement links from `requirements[].stories`
 - Count total stories and requirements
 
 ### 3. Read constraints
@@ -89,6 +92,7 @@ Verify that proposed requirements would not violate any constraints:
 - Requirements must be testable (quality constraint)
 - Requirements must not duplicate constraint-level rules (cross-cutting requirements belong in `docs/constraints.yaml`, not in the spec)
 - Each requirement must be scoped to this one feature (must not require knowledge of other features)
+- Every story must be linked from at least one requirement
 
 ### 3. Report evaluation
 
@@ -144,9 +148,9 @@ Common decomposition patterns:
 | User Settings | View Settings, Update Settings, Preferences |
 | Notifications | Subscribe, Receive, View History, Manage Preferences |
 
-#### 3. Write requirements for each story
+#### 3. Write the minimum reusable requirements
 
-For each story, derive EARS requirements that fully resolve it. Each requirement must:
+Derive the smallest set of EARS requirements that fully resolves the stories in this feature. A requirement may link to one story or many stories when the same behavior applies. Each requirement must:
 - Use the correct EARS sentence type (ubiquitous, event-driven, state-driven, unwanted-behavior, optional-feature, or complex)
 - Be black-box testable -- the litmus test:
   > Could a tester who has never seen the source code verify this requirement using only the system's user interface or public APIs? If not, rewrite it.
@@ -168,7 +172,17 @@ For each story, derive EARS requirements that fully resolve it. Each requirement
 - Observable system states and transitions
 - Error messages and feedback presented to the user
 
-#### 4. Check for constraint-level requirements
+When two or more stories need the same externally observable behavior, prefer one shared requirement linked to all applicable stories rather than duplicating the text.
+
+#### 4. Link requirements to stories
+
+For each requirement, record all applicable story IDs in `stories: [US-...]`.
+
+- Every requirement must link to at least one story
+- Every story must be linked from at least one requirement
+- Use the minimum number of requirements that still keeps each requirement atomic and testable
+
+#### 5. Check for constraint-level requirements
 
 While writing requirements, check each one:
 - Does this requirement apply only to this feature? -> Keep as a requirement
@@ -187,7 +201,7 @@ constraint_notes:
       constraint. Not duplicated as a requirement here.
 ```
 
-#### 5. Error and edge case coverage
+#### 6. Error and edge case coverage
 
 For each happy-path requirement, consider:
 - What happens with empty/missing data? -> Write an unwanted-behavior requirement
@@ -195,12 +209,12 @@ For each happy-path requirement, consider:
 - What happens at boundaries (zero items, max items)? -> Write a requirement
 - What happens when an external dependency fails? -> Write an unwanted-behavior requirement
 
-#### 6. Assign IDs
+#### 7. Assign IDs
 
 - Story IDs: Sequential within the file (US-001, US-002, ...). Zero-padded to 3 digits.
-- Requirement IDs: Sequential across the entire feature (PREFIX-001, PREFIX-002, ...). Zero-padded to 3 digits. IDs are assigned in order of appearance, across all stories.
+- Requirement IDs: Sequential across the entire feature (PREFIX-001, PREFIX-002, ...). Zero-padded to 3 digits. IDs are assigned in order of appearance in the top-level `requirements` list.
 
-#### 7. Write the YAML file
+#### 8. Write the YAML file
 
 Create `docs/features/<slug>/spec.yaml` following the schema. Include the YAML Language Server schema comment at the top for IDE validation:
 
@@ -208,7 +222,7 @@ Create `docs/features/<slug>/spec.yaml` following the schema. Include the YAML L
 # yaml-language-server: $schema=../../../skills/needs-features/schemas/feature-spec.schema.json
 ```
 
-#### 8. Validate
+#### 9. Validate
 
 Run the validation script to verify the spec:
 
@@ -222,18 +236,19 @@ Fix any errors before reporting completion.
 
 1. Read the existing spec and identify the next available story ID and requirement ID.
 2. Before adding, check for stories with substantially similar scope. If a potential duplicate is found, present both to the user and ask whether to merge, replace, or keep both.
-3. Assign the next sequential IDs.
+3. Before creating a new requirement, check whether an existing requirement can be linked to the new story instead of duplicated.
+4. Assign the next sequential IDs.
 4. Bump the version: MINOR (new content added).
 5. Update `last_updated` to today's date.
 6. Run validation.
 
 ### Modifying existing stories/requirements
 
-1. Identify which stories or requirements the user wants to modify.
+1. Identify which stories, requirements, or requirement-to-story links the user wants to modify.
 2. Present the proposed changes: show the current text alongside the new text.
 3. Ask the user to confirm before applying.
 4. Bump the version:
-   - Requirements fundamentally rewritten or removed: MAJOR
+   - Requirements fundamentally rewritten, removed, or unlinked from stories in a breaking way: MAJOR
    - Requirements refined or added (non-breaking): MINOR
    - Typos, formatting, clarifications: PATCH
 5. Update `last_updated` to today's date.
@@ -243,11 +258,13 @@ Fix any errors before reporting completion.
 
 1. Identify the stories or requirements to remove.
 2. **Warn about downstream impact:** Removing requirements may make the feature's design stale. Inform the user.
-3. Ask the user to confirm.
-4. Remove the items. Do not renumber remaining IDs (IDs are stable).
-5. Bump the version: MAJOR (content removed).
-6. Update `last_updated` to today's date.
-7. Run validation. Note: the sequential numbering check will report gaps for removed IDs -- this is expected after removals and can be acknowledged.
+3. If removing a story, remove or relink any requirements that reference it so no dangling story links remain.
+4. If removing a requirement shared by multiple stories, confirm whether the behavior should be removed for all linked stories or split into a new requirement before deletion.
+5. Ask the user to confirm.
+6. Remove the items. Do not renumber remaining IDs (IDs are stable).
+7. Bump the version: MAJOR (content removed).
+8. Update `last_updated` to today's date.
+9. Run validation. Note: the sequential numbering check will report gaps for removed IDs -- this is expected after removals and can be acknowledged.
 
 ### Syncing an existing spec
 
@@ -283,10 +300,10 @@ flowchart TD
 1. Read the current intent and the existing spec
 2. For each story and requirement, determine:
    - **New** -- no corresponding story/requirement exists -> add
-   - **Modified** -- the intent changed the expected behavior -> update
+   - **Modified** -- the intent changed the expected behavior or story linkage -> update
    - **Unchanged** -- still aligned -> no action
-3. For each existing requirement, check if its source story still makes sense
-   - **Orphaned** -- story was removed -> mark for removal
+3. For each existing requirement, check whether its linked stories still make sense
+   - **Orphaned** -- requirement no longer links to any valid story -> mark for removal or relinking
 4. Check for requirements that now overlap with constraints added since last sync
    - **Promoted to constraint** -- now covered by `docs/constraints.yaml` -> mark for removal
 
@@ -296,13 +313,15 @@ flowchart TD
 Spec sync for product-browsing:
 
 Added:
-  - US-003: Paginate Products (new story + PROD-009, PROD-010)
+  - US-003: Paginate Products
+  - PROD-009 linked to US-001 and US-003
+  - PROD-010 linked to US-003
 
 Modified:
   - PROD-006: Added "sorted by relevance" to search results display
 
 Removed:
-  - US-001/PROD-004: Sort feature removed per user request
+  - PROD-004 unlinked from US-001 and removed because no stories still require it
 
 No changes to: PROD-001, PROD-002, PROD-003, PROD-005, PROD-007, PROD-008
 ```
@@ -339,16 +358,19 @@ Before finalizing, verify:
 - Every story delivers user value
 - Stories are independent and can be implemented in any order
 - No story spans multiple features
+- Every story is linked from at least one requirement
 - Every requirement uses the correct EARS sentence type
 - Every requirement passes the black-box litmus test
 - Every requirement contains "shall"
 - Every requirement has a unique ID with the feature prefix
+- Every requirement links only to valid story IDs
 - Requirement IDs are sequential across the feature
 - No duplicate IDs
+- Shared behaviors are expressed once and linked to all applicable stories
 - Error and edge case scenarios are covered using unwanted-behavior type
 - Cross-cutting requirements have been flagged as potential constraints
 - The validation script passes: `python skills/needs-features/scripts/validate-specs.py docs/features/<slug>/spec.yaml`
 
 ## Reference
 
-See `references/product-browsing.spec.yaml`, `references/shopping-cart.spec.yaml`, and `references/checkout.spec.yaml` for complete examples showing how a feature intent becomes a YAML specification with stories and EARS requirements.
+See `references/product-browsing.spec.yaml`, `references/shopping-cart.spec.yaml`, and `references/checkout.spec.yaml` for complete examples showing how a feature intent becomes a YAML specification with stories and linked EARS requirements.

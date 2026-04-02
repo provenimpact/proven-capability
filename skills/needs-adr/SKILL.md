@@ -206,4 +206,4 @@ Before finalizing, verify:
 
 ## Reference
 
-See `references/0001-use-typescript.yaml`, `references/0002-use-postgresql.yaml`, and `references/index.yaml` for complete examples.
+See `references/0001-use-typescript.yaml`, `references/0002-use-postgresql.yaml`, `references/0003-use-nextjs.yaml`, `references/0004-use-stripe.yaml`, `references/0005-adopt-tdd.yaml`, and `references/index.yaml` for complete examples.
