@@ -1,26 +1,24 @@
 = Design Example
 
-This file shows a complete design document for the `shopping-cart` feature of an e-commerce project. The feature's user stories and spec are used as input. The design includes Mermaid diagrams for component interactions and the primary user flow.
+This file shows a complete design document for the `shopping-cart` feature of an e-commerce project. The feature's spec.yaml requirements are used as input. The design includes Mermaid diagrams for component interactions and the primary user flow.
 
 == Context
 
 Given:
 
-* `docs/features/shopping-cart/user-stories.adoc` at version `1.0.0` with 2 stories: US-001 (Add to Cart), US-002 (View Cart)
-* `docs/features/shopping-cart/spec.adoc` at version `1.0.0` with prefix CART (8 requirements)
-* `docs/adrs/0001-use-typescript.adoc` (Accepted)
-* `docs/adrs/0002-use-postgresql.adoc` (Accepted)
-* `docs/adrs/0003-use-nextjs.adoc` (Accepted)
-* `docs/constraints.adoc` with architecture constraint: "Business logic resides in the service layer"
+* `docs/features/shopping-cart/spec.yaml` with stories US-001 (Add to Cart) and US-002 (View Cart), requirements CART-001 through CART-007
+* `docs/adrs/0001-use-typescript.yaml` (Accepted)
+* `docs/adrs/0002-use-postgresql.yaml` (Accepted)
+* `docs/adrs/0003-use-nextjs.yaml` (Accepted)
+* `docs/constraints.yaml` with architecture constraint: "Business logic resides in the service layer"
 
 == Design File (docs/features/shopping-cart/design.adoc)
 
 ....
 = Design: Shopping Cart
 :version: 1.0.0
-:status: Current
-:source-stories-version: 1.0.0
 :source-spec-version: 1.0.0
+:status: Current
 :last-updated: 2026-02-20
 :feature: shopping-cart
 :toc:
@@ -31,9 +29,9 @@ Adding cart management to an existing e-commerce web application built with Next
 
 == Decisions and Constraints
 
-* <<../../adrs/0001-use-typescript.adoc#,ADR-0001>>: Use TypeScript for backend and frontend
-* <<../../adrs/0002-use-postgresql.adoc#,ADR-0002>>: Use PostgreSQL for persistence
-* <<../../adrs/0003-use-nextjs.adoc#,ADR-0003>>: Use Next.js as the fullstack framework
+* ADR-0001: Use TypeScript for backend and frontend (see docs/adrs/0001-use-typescript.yaml)
+* ADR-0002: Use PostgreSQL for persistence (see docs/adrs/0002-use-postgresql.yaml)
+* ADR-0003: Use Next.js as the fullstack framework (see docs/adrs/0003-use-nextjs.yaml)
 
 Architecture constraint: Business logic resides in the service layer, not in route handlers.
 
@@ -142,25 +140,24 @@ Business logic for cart operations. Enforces stock validation, quantity constrai
 
 CartContext (React Context) holds client-side cart state. Synced with backend on mutations. Persisted in localStorage for anonymous users.
 
-== Story Resolution
+== Requirement Resolution
 
 === US-001: Add to Cart
 
 Components:: ProductCard (existing), CartContext, CartIcon, POST /api/cart/items, CartService
-Criteria::
-* Display add-to-cart button on each product -> ProductCard shows button (CART-001)
-* Update cart count in header -> POST /api/cart/items via CartService, CartContext updates, CartIcon reflects count (CART-002)
-* Display success confirmation -> Frontend displays toast after successful add (CART-003)
-* Increment quantity for duplicate -> CartService increments quantity if product already in cart (CART-004)
+Requirements::
+* CART-001: Add product and update cart count -> ProductCard button triggers POST /api/cart/items via CartService, CartContext updates, CartIcon reflects count
+* CART-002: Display success confirmation -> CartContext triggers toast notification after successful API response
+* CART-003: Increment quantity for duplicates -> CartService checks if product exists in cart, increments quantity via upsert if so
 
 === US-002: View Cart
 
-Components:: Cart Page, CartContext, PATCH/DELETE /api/cart/items, CartService
-Criteria::
-* Display cart items with quantities -> Cart Page reads CartContext and renders line items (CART-005)
-* Display prices and total -> Cart Page computes and shows item prices and cart total (CART-006)
-* Update total on quantity change -> PATCH /api/cart/items via CartService, CartContext updates, Cart Page re-renders (CART-007)
-* Remove item and update total -> DELETE /api/cart/items via CartService, CartContext updates, Cart Page removes item (CART-008)
+Components:: Cart Page, CartContext, PATCH /api/cart/items, DELETE /api/cart/items, CartService
+Requirements::
+* CART-004: Display cart items with details -> Cart Page reads CartContext, renders line items with names, quantities, prices
+* CART-005: Display correct cart total -> Cart Page computes total from CartContext items (price * quantity sum)
+* CART-006: Update quantity and recalculate -> PATCH /api/cart/items via CartService, CartContext updates, Cart Page re-renders with updated totals
+* CART-007: Remove item and recalculate -> DELETE /api/cart/items via CartService, CartContext updates, Cart Page removes item and recalculates total
 ....
 
 == Data Model File (docs/features/shopping-cart/data-model.adoc)
@@ -210,3 +207,4 @@ Criteria::
 - Architecture constraint is explicitly respected: CartService contains business logic, route handlers only delegate
 - The component interaction diagram shows all components and their communication paths
 - The sequence diagram traces the primary add-to-cart flow through all layers
+- The `:source-spec-version:` tracks which spec.yaml version was used as input

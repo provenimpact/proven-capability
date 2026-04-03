@@ -47,7 +47,7 @@ Check for security-relevant configuration issues:
 
 ### 4. Read constraints
 
-Read `docs/constraints.adoc`. Identify all security constraints.
+Read `docs/constraints.yaml`. Identify all security constraints.
 
 ### 5. Report observation
 

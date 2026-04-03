@@ -1,188 +1,147 @@
-= needs-tests Example
-:description: Deriving tests from the product-browsing feature specification
+= Example: Spec Requirements to Tests
 
 == Context
 
-This example derives test cases from the `product-browsing` feature specification. The project uses TypeScript with Vitest.
+The project has an accepted ADR (`docs/adrs/0005-adopt-tdd.yaml`) recording the decision to use TDD. The test framework is Vitest (detected from `vitest.config.ts`).
 
-**Input:** `docs/features/product-browsing/spec.adoc` (v1.0.0) with 8 requirements (PROD-001 through PROD-008).
+This example shows test derivation for the `product-browsing` feature from `docs/features/product-browsing/spec.yaml`.
 
-**Existing infrastructure:** Vitest configured, test helpers in `tests/helpers/`, database factory in `tests/factories/`.
+== Input: spec.yaml (excerpt)
 
-== Part 1: Observation
-
+[source,yaml]
 ----
-Feature: product-browsing
-Spec: {exists: true, version: "1.0.0", requirement-count: 8}
-Design: {exists: true, version: "1.0.0"}
-Existing tests: {count: 0, spec-ids-covered: [], spec-ids-missing: [PROD-001..PROD-008]}
-Test framework: Vitest
-Coverage constraints: ["Test coverage must not decrease per feature implementation"]
+feature: product-browsing
+prefix: PROD
+
+stories:
+  - id: US-001
+    title: View Product Catalog
+    narrative:
+      as_a: shopper
+      i_want: to browse available products
+      so_that: I can find items I want to purchase
+
+requirements:
+  - id: PROD-001
+    stories: [US-001]
+    text: The system shall display products in a grid or list format.
+    ears_type: ubiquitous
+    verification: >-
+      Navigate to the product listing page. Confirm that products are
+      displayed in a grid or list layout.
+
+  - id: PROD-002
+    stories: [US-001]
+    text: >-
+      The system shall show the name, price, and image for each product in
+      the listing.
+    ears_type: ubiquitous
+    verification: >-
+      View the product listing. Confirm each product displays its name,
+      price, and image.
+
+  - id: PROD-003
+    stories: [US-001]
+    text: >-
+      When the user selects a category filter, the system shall display only
+      products in that category.
+    ears_type: event-driven
+    verification: >-
+      Select a category filter. Confirm that only products in the selected
+      category are displayed.
 ----
 
-== Part 2: Evaluation
-
-All 8 requirements need tests. Design is available, so test levels are informed by the Story Resolution section.
-
-----
-Action: generate
-Requirements to test: 8 (new: 8, modified: 0, uncovered: 0)
-Constraint requirements: [coverage must not decrease]
-----
-
-== Part 3: Test derivation
-
-=== PROD-001 (Ubiquitous): Product display format
-
-**Spec:**
-
-----
-The system shall display products in a grid or list format.
-Type:: Ubiquitous
-Source:: US-001: View Product Catalog, Criterion 1
-Verification:: Open the product catalog page. Confirm that products are displayed in a grid or list layout.
-----
-
-**Design context:** Product Catalog page (SSR), fetches from `GET /api/products`.
-
-**Derived test level:** Integration (spans page rendering and API).
-
-**Derived test cases:**
+== Output: tests/features/product-browsing/catalog.test.ts
 
 [source,typescript]
 ----
-describe("PROD-001: displays products in grid or list format", () => {
-  it("should display products in a grid layout by default", async () => {
-    await factory.create("product", { name: "Widget A" });
-    await factory.create("product", { name: "Widget B" });
+import { describe, it, expect, beforeEach } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { ProductCatalog } from "@/components/ProductCatalog";
+import { createTestProducts } from "@/tests/factories/product";
 
-    const response = await request(app).get("/api/products");
+describe("US-001: View Product Catalog", () => {
+  const products = createTestProducts([
+    { name: "Widget A", price: 9.99, category: "electronics", image: "widget-a.jpg" },
+    { name: "Widget B", price: 19.99, category: "electronics", image: "widget-b.jpg" },
+    { name: "Shirt", price: 29.99, category: "clothing", image: "shirt.jpg" },
+  ]);
 
-    expect(response.status).toBe(200);
-    expect(response.body.products).toHaveLength(2);
-    expect(response.body.products[0]).toHaveProperty("name");
-    expect(response.body.products[0]).toHaveProperty("price");
-    expect(response.body.products[0]).toHaveProperty("image");
+  beforeEach(() => {
+    render(<ProductCatalog products={products} />);
   });
 
-  it("should return an empty list when no products exist", async () => {
-    const response = await request(app).get("/api/products");
+  it("PROD-001: displays products in a grid or list format", () => {
+    const productList = screen.getByRole("list", { name: /products/i });
+    const items = within(productList).getAllByRole("listitem");
+    expect(items).toHaveLength(3);
+  });
 
-    expect(response.status).toBe(200);
-    expect(response.body.products).toHaveLength(0);
+  it("PROD-002: shows name, price, and image for each product", () => {
+    for (const product of products) {
+      expect(screen.getByText(product.name)).toBeInTheDocument();
+      expect(screen.getByText(`$${product.price}`)).toBeInTheDocument();
+      expect(screen.getByAltText(product.name)).toHaveAttribute("src", product.image);
+    }
+  });
+
+  it("PROD-003: filters products by selected category", async () => {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("option", { name: "electronics" }));
+
+    expect(screen.getByText("Widget A")).toBeInTheDocument();
+    expect(screen.getByText("Widget B")).toBeInTheDocument();
+    expect(screen.queryByText("Shirt")).not.toBeInTheDocument();
   });
 });
 ----
 
-=== PROD-002 (Event-driven): Category filtering
+== Notes
 
-**Spec:**
+- Test descriptions include the requirement ID (e.g., `PROD-001:`) for traceability
+- Tests can still be grouped by story ID in describe blocks, even though requirements are stored at the top level and linked back to stories
+- In TDD mode, these tests are written BEFORE the production code. They will fail initially and drive the implementation.
+- The test implementations use the design document to understand what components exist (ProductCatalog, test factories, etc.)
+- Each test verifies exactly what the `verification` field in the spec describes
+- Tests follow the project's existing conventions (Vitest, Testing Library, factories)
 
+== ADR That Enables This Capability
+
+For reference, the ADR that enables `needs-tests`:
+
+....
+[source,yaml]
 ----
-When the user selects a category filter, the system shall display only products in that category.
-Type:: Event-driven
-Source:: US-001: View Product Catalog, Criterion 3
-Verification:: Select a category filter. Confirm that only products in the selected category are displayed.
+$id: https://provenimpact.github.io/proven-needs/schemas/adr-v1.0.0.schema.json
+id: ADR-0005
+title: Adopt Test-Driven Development
+status: Accepted
+date: "2026-02-20"
+deciders: Team
+
+context: >-
+  The project needs a testing strategy. Options considered: no automated tests,
+  test-after, and test-first / TDD derived from specs before implementation.
+
+decision: >-
+  Adopt TDD. Tests are derived from feature specifications (spec.yaml) before
+  implementation. The needs-tests capability generates test files from EARS
+  requirements.
+
+consequences:
+  easier:
+    - Tests serve as the acceptance gate for implementation
+    - Test coverage constraints in docs/constraints.yaml can be enforced consistently
+  harder:
+    - Each feature transition includes an additional test-derivation step
+
+alternatives:
+  - name: No automated tests
+    reason_rejected: >-
+      Manual verification alone provides weaker regression protection.
+  - name: Test-after
+    reason_rejected: >-
+      Writing tests after implementation weakens the spec-driven workflow.
 ----
-
-**Derived test level:** Integration (API filtering logic).
-
-**Derived test cases:**
-
-[source,typescript]
-----
-describe("PROD-002: category filtering", () => {
-  it("should return only products in the selected category", async () => {
-    await factory.create("product", { name: "Widget", category: "electronics" });
-    await factory.create("product", { name: "Shirt", category: "clothing" });
-
-    const response = await request(app).get("/api/products?category=electronics");
-
-    expect(response.status).toBe(200);
-    expect(response.body.products).toHaveLength(1);
-    expect(response.body.products[0].name).toBe("Widget");
-  });
-
-  it("should return all products when no category filter is applied", async () => {
-    await factory.create("product", { category: "electronics" });
-    await factory.create("product", { category: "clothing" });
-
-    const response = await request(app).get("/api/products");
-
-    expect(response.body.products).toHaveLength(2);
-  });
-
-  it("should return empty list for a category with no products", async () => {
-    await factory.create("product", { category: "electronics" });
-
-    const response = await request(app).get("/api/products?category=books");
-
-    expect(response.status).toBe(200);
-    expect(response.body.products).toHaveLength(0);
-  });
-});
-----
-
-== Part 4: File organization
-
-Following the project's existing test layout:
-
-----
-tests/
-└── features/
-    └── product-browsing/
-        ├── products-api.test.ts       # Integration: PROD-001, PROD-002, PROD-003, PROD-004
-        ├── product-search.test.ts     # Integration: PROD-005, PROD-006, PROD-007
-        └── product-catalog.e2e.ts     # E2E: PROD-008 (page-level rendering)
-----
-
-Each file includes a header:
-
-[source,typescript]
-----
-// Feature: product-browsing
-// Spec version: 1.0.0
-// Generated from: spec.adoc
-//
-// Spec coverage:
-//   PROD-001: displays products in grid or list format
-//   PROD-002: category filtering
-//   PROD-003: product detail display
-//   PROD-004: price display with currency
-----
-
-== Part 5: Verification
-
-----
-Tests generated:
-  Files: 3 new, 0 modified
-  Test cases: 19 total (0 unit, 15 integration, 4 e2e)
-  Spec coverage: 8/8 requirement IDs covered
-  Test results: 19 passed, 0 failed
-  Coverage: 82% (constraint threshold: none specified, must not decrease)
-----
-
-== Part 6: Sync scenario
-
-Stories updated to v1.1.0, spec synced to v2.0.0 (PROD-004 removed, PROD-009 added).
-
-**Observation:**
-
-----
-Existing tests: {count: 19, spec-ids-covered: [PROD-001..PROD-008], spec-ids-missing: [PROD-009]}
-----
-
-**Evaluation:**
-
-----
-Action: update
-Requirements to test: 1 (new: 1, modified: 0, uncovered: 0)
-Orphaned tests: PROD-004 tests (requirement removed)
-----
-
-**Execution:**
-
-1. Remove test cases for PROD-004 from `products-api.test.ts`
-2. Add test cases for PROD-009 to the appropriate test file
-3. Update spec version in file headers from `1.0.0` to `2.0.0`
-4. Run tests: 18 passed, 0 failed
+....

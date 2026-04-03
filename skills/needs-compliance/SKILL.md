@@ -29,7 +29,7 @@ Common license classifications:
 
 ### 2. Read constraints
 
-Read `docs/constraints.adoc`. Identify licensing constraints (e.g., "Only MIT, Apache-2.0, and BSD-licensed dependencies are permitted").
+Read `docs/constraints.yaml`. Identify licensing constraints (e.g., "Only MIT, Apache-2.0, and BSD-licensed dependencies are permitted").
 
 ### 3. Identify violations
 
@@ -98,7 +98,7 @@ For dependencies that can be removed:
 ### 3. Document exceptions
 
 If the user approves a license exception:
-1. Record the exception in `docs/constraints.adoc` as a noted exception under the licensing section
+1. Record the exception in `docs/constraints.yaml` as a noted exception under the licensing section
 2. Document the rationale
 
 ### 4. Verify

@@ -1,6 +1,6 @@
 = Example: Intent-Driven Session
 
-This file demonstrates two complete state transitions: a feature evolution intent and a maintenance intent.
+This file demonstrates three complete state transitions: a feature evolution intent, a maintenance intent, and a constraint declaration.
 
 == Session 1: Feature Evolution
 
@@ -13,8 +13,8 @@ This file demonstrates two complete state transitions: a feature evolution inten
 ....
 Current state:
   Features: 0 (no feature packages exist)
-  Constraints: docs/constraints.adoc exists with 6 rules
-  ADRs: 0
+  Constraints: docs/constraints.yaml exists with 10 rules
+  ADRs: 0 (TDD: not adopted)
   Architecture: none
   Codebase: empty project, package.json with Next.js scaffold
   Constraint violations: none
@@ -26,27 +26,39 @@ Intent type: **Feature evolution** (describes user-facing capabilities with user
 
 Not a constraint (no universal quantifiers, has identifiable user roles and journeys).
 
+=== TDD Decision
+
+....
+This project doesn't have an automated testing strategy yet.
+Would you like to adopt TDD for this project?
+
+  1. Yes -- tests will be derived from requirements before implementation (creates ADR)
+  2. No -- manual verification against spec.yaml requirements only
+....
+
+User chooses: **No** (manual verification for now).
+
 === Step 3: Feature Decomposition (Two-Pass)
 
-**Pass 1:** Invoke `needs-stories` with temporary slug `_drafts` to derive stories from the intent. 5 stories identified.
+**Pass 1:** Derive user stories and linked EARS requirements as transient working output. No feature package or schema-validated `spec.yaml` is created yet.
 
 Analyze story cohesion and propose feature grouping:
 
 ....
 Based on your intent, I propose 3 features:
 
-Feature 1: product-browsing
-  - View Product Catalog
-  - Search Products
+Feature 1: product-browsing (prefix: PROD)
+  - US-001: View Product Catalog (PROD-001 through PROD-004)
+  - US-002: Search Products (PROD-005 through PROD-008)
   (Share product data and catalog UI)
 
-Feature 2: shopping-cart
-  - Add to Cart
-  - View Cart
+Feature 2: shopping-cart (prefix: CART)
+  - US-001: Add to Cart (CART-001 through CART-003)
+  - US-002: View Cart (CART-004 through CART-007)
   (Share cart state and cart data)
 
-Feature 3: checkout
-  - Checkout Process
+Feature 3: checkout (prefix: CHK)
+  - US-001: Checkout Process (CHK-001 through CHK-005)
   (Independent user journey with payment flow)
 
 Adjust grouping?
@@ -54,17 +66,17 @@ Adjust grouping?
 
 User confirms the grouping.
 
-**Pass 2:** For each confirmed feature, invoke `needs-stories` with the final slug to create `user-stories.adoc` with proper feature-scoped story IDs (US-001, US-002, ... per feature). Remove temporary `_drafts` directory.
+**Pass 2:** For each confirmed feature, invoke `needs-features` with the final slug to create `spec.yaml` with proper feature-scoped IDs. Run `python skills/needs-features/scripts/validate-specs.py` on each spec. Discard the transient draft output.
 
 === Step 4: Evaluate Feasibility
 
 For each feature:
-- Stories can be created (no preconditions)
-- Specs can be derived from stories
-- Design can be created from stories + specs
+- spec.yaml can be created (no preconditions)
+- Design can be created from spec.yaml
 - Tasks can be derived from design
 - Implementation can proceed from tasks
 - No constraint violations anticipated
+- TDD not adopted -- `needs-tests` skipped
 
 Technology decisions will emerge during design (framework, database, payment provider) -- ADRs will be created.
 
@@ -72,20 +84,21 @@ Technology decisions will emerge during design (framework, database, payment pro
 Transition plan:
 
 For each feature (product-browsing, shopping-cart, checkout):
-  1. needs-stories: Create user stories
-  2. needs-spec: Derive specifications
-  3. needs-design: Create implementation design
-  4. needs-tasks: Create phased task breakdown
-  5. needs-implementation: Implement code
-  6. Resolve any design divergences (user decides per-divergence)
-  7. needs-tests: Generate tests from specifications
+  1. needs-features: Create spec.yaml (stories + linked EARS requirements)
+  2. needs-design: Create implementation design
+  3. needs-tasks: Create task graph (DAG with depends_on)
+  4. needs-implementation: Implement code changes
 
 Additionally:
   - needs-adr: Record technology decisions (during design phases)
   - needs-architecture: Document architecture (after all features implemented)
 
+Skipping: needs-tests (TDD not adopted)
+
+capabilities-planned: needs-features, needs-design, needs-tasks, needs-implementation, needs-adr, needs-architecture
+
 Risk: HIGH (new features, 3 feature packages, full lifecycle)
-Estimated: 15+ artifacts + code + tests
+Estimated: spec.yaml + design + tasks + code per feature
 
 Proceed?
 ....
@@ -94,27 +107,26 @@ User confirms.
 
 === Step 5: Execute Transition
 
+Before invoking the first capability, the orchestrator appends an `In Progress` entry to `docs/state-log.adoc` so the transition can be resumed or closed out if execution is interrupted.
+
 ==== Feature 1: product-browsing
 
-1. **needs-stories** creates `docs/features/product-browsing/user-stories.adoc` v1.0.0 (2 stories)
-2. **needs-spec** derives `docs/features/product-browsing/spec.adoc` v1.0.0 (prefix: PROD, 8 requirements)
-3. **needs-design** creates `docs/features/product-browsing/design.adoc` v1.0.0
-   - During Phase 0, identifies technology decisions: framework choice, database choice
-   - Invokes **needs-adr** to create ADR-0001 (TypeScript) and ADR-0002 (PostgreSQL)
-4. **needs-tasks** creates `docs/features/product-browsing/tasks.adoc` v1.0.0 (3 phases, 8 tasks)
-5. **needs-implementation** implements code phase by phase
-6. **Divergence check:** needs-implementation reports no divergences (implementation matched design)
-7. **needs-tests** generates tests from PROD-001 through PROD-008 (3 test files, 19 test cases)
+1. **needs-features** creates `docs/features/product-browsing/spec.yaml` v1.0.0 (prefix: PROD, 2 stories, 8 requirements). Schema validation passes.
+2. **needs-design** creates `docs/features/product-browsing/design.adoc` v1.0.0 (`:source-spec-version: 1.0.0`)
+   - During Phase 0, identifies technology decisions: language choice, framework choice, database choice
+   - Invokes **needs-adr** to create ADR-0001 (TypeScript), ADR-0002 (PostgreSQL), and ADR-0003 (Next.js)
+3. **needs-tasks** creates `docs/features/product-browsing/tasks.yaml` v1.0.0 (8 tasks, DAG with depends_on)
+4. **needs-implementation** implements code following task DAG order (root tasks first, then dependent tasks in parallel)
+5. **Divergence check:** needs-implementation reports no divergences
 
 ==== Feature 2: shopping-cart
 
-1. **needs-stories** creates `docs/features/shopping-cart/user-stories.adoc` v1.0.0 (2 stories)
-2. **needs-spec** derives `docs/features/shopping-cart/spec.adoc` v1.0.0 (prefix: CART, 8 requirements)
-3. **needs-design** creates `docs/features/shopping-cart/design.adoc` v1.0.0
+1. **needs-features** creates `docs/features/shopping-cart/spec.yaml` v1.0.0 (prefix: CART, 2 stories, 7 requirements). Schema validation passes.
+2. **needs-design** creates `docs/features/shopping-cart/design.adoc` v1.0.0
    - References existing ADRs, no new decisions needed
-4. **needs-tasks** creates `docs/features/shopping-cart/tasks.adoc` v1.0.0 (3 phases, 9 tasks)
-5. **needs-implementation** implements code phase by phase
-6. **Divergence check:** needs-implementation reports 1 divergence:
+3. **needs-tasks** creates `docs/features/shopping-cart/tasks.yaml` v1.0.0 (9 tasks, DAG with depends_on)
+4. **needs-implementation** implements code following task DAG order
+5. **Divergence check:** needs-implementation reports 1 divergence:
 +
 ....
 Design divergence: CartService validation placement
@@ -129,23 +141,19 @@ User decides: "Update design" -- the route-level pattern is consistent and the c
 +
 Orchestrator invokes **needs-design** (reconciliation mode) to update `design.adoc` v1.0.1.
 
-7. **needs-tests** generates tests from CART-001 through CART-008 (3 test files, 22 test cases)
-
 ==== Feature 3: checkout
 
-1. **needs-stories** creates `docs/features/checkout/user-stories.adoc` v1.0.0 (1 story)
-2. **needs-spec** derives `docs/features/checkout/spec.adoc` v1.0.0 (prefix: CHK, 6 requirements)
-3. **needs-design** creates `docs/features/checkout/design.adoc` v1.0.0
+1. **needs-features** creates `docs/features/checkout/spec.yaml` v1.0.0 (prefix: CHK, 1 story, 5 requirements). Schema validation passes.
+2. **needs-design** creates `docs/features/checkout/design.adoc` v1.0.0
    - During Phase 0, identifies payment provider decision
-   - Invokes **needs-adr** to create ADR-0003 (Stripe)
-4. **needs-tasks** creates `docs/features/checkout/tasks.adoc` v1.0.0 (3 phases, 7 tasks)
-5. **needs-implementation** implements code phase by phase
-6. **Divergence check:** needs-implementation reports no divergences
-7. **needs-tests** generates tests from CHK-001 through CHK-006 (2 test files, 14 test cases)
+   - Invokes **needs-adr** to create ADR-0004 (Stripe)
+3. **needs-tasks** creates `docs/features/checkout/tasks.yaml` v1.0.0 (7 tasks, DAG with depends_on)
+4. **needs-implementation** implements code following task DAG order
+5. **Divergence check:** needs-implementation reports no divergences
 
 ==== Post-implementation
 
-- **needs-architecture** creates `docs/architecture.adoc` v1.0.0 from all feature designs and codebase (invoked after all features are implemented)
+- **needs-architecture** creates `docs/architecture.adoc` v1.0.0 from all feature designs and codebase
 
 === Step 6: Validate
 
@@ -154,15 +162,30 @@ Re-observe current state:
 ....
 Current state:
   Features: 3 (product-browsing [implemented], shopping-cart [implemented], checkout [implemented])
-  Constraints: 6 rules, 0 violations
-  ADRs: 3 accepted
+  Constraints: 10 rules, 0 violations
+  ADRs: 4 accepted
   Architecture: v1.0.0 (current)
-  Codebase: TypeScript/Next.js, build passing, tests passing
+  Codebase: TypeScript/Next.js, build passing
 ....
 
-Desired state "users can browse products, add them to cart, and checkout" is achieved.
+Validation complete. The desired state appears to be achieved:
+  - All capabilities executed successfully
+  - Constraints verified (all pass)
+  - Build passing
 
-=== Step 7: Record Transition
+Approving this transition will record :result: Achieved in the state log.
+
+....
+Do you approve this transition as achieved?
+  1. Yes -- record Achieved
+  2. No -- investigate issues
+....
+
+User approves.
+
+=== Step 7: Finalize Transition Record
+
+The existing `In Progress` state-log entry is updated to `Achieved` after the user approves the completed transition.
 
 ....
 == TRANSITION-001
@@ -173,15 +196,16 @@ Desired state "users can browse products, add them to cart, and checkout" is ach
 :features: product-browsing (new), shopping-cart (new), checkout (new)
 :desired-state: E-commerce site with product browsing, cart management, and checkout
 :prior-state: Empty project scaffold
-:capabilities-invoked: needs-stories, needs-spec, needs-design, needs-adr, needs-tasks, needs-implementation, needs-tests, needs-architecture
+:capabilities-planned: needs-features, needs-design, needs-adr, needs-tasks, needs-implementation, needs-architecture
+:capabilities-invoked: needs-features, needs-design, needs-adr, needs-tasks, needs-implementation, needs-architecture
 :constraints-checked: Security (pass), Architecture (pass), Quality (pass), Licensing (pass)
 :result: Achieved
-:artifacts-modified: 12 feature artifacts, 3 ADRs, 1 architecture doc, 8 test files, source code
+:artifacts-modified: spec.yaml (3 features), design.adoc (3), tasks.yaml (3), 4 ADRs, architecture.adoc, source code
 ....
 
 ---
 
-== Session 2: Maintenance Intent (Auto-Approve)
+== Session 2: Maintenance Intent (Low-Risk Auto-Execution)
 
 === User Intent (system-detected)
 
@@ -198,12 +222,17 @@ Constraint status: VIOLATED
 Intent type: **Dependency maintenance**
 Risk: **Low** (patch update available: lodash@4.17.21)
 
-=== Auto-Approve
+=== Low-Risk Auto-Execution
 
-This qualifies for auto-approval because:
+This qualifies for low-risk auto-execution because:
 - Patch-level update (4.17.20 -> 4.17.21)
 - Resolves a constraint violation
 - Low risk of breaking changes
+
+....
+Low-risk transition detected: patch dependency update available for lodash.
+I am applying it now unless you want to inspect the plan first.
+....
 
 === Execute
 
@@ -216,7 +245,7 @@ This qualifies for auto-approval because:
 === Report
 
 ....
-Auto-approved: Updated lodash 4.17.20 -> 4.17.21 (CVE-2021-23337 resolved).
+Auto-executed after concise notice: Updated lodash 4.17.20 -> 4.17.21 (CVE-2021-23337 resolved).
 Build passing. Tests passing. No remaining vulnerabilities.
 ....
 
@@ -227,10 +256,11 @@ Build passing. Tests passing. No remaining vulnerabilities.
 :date: 2026-02-24
 :intent: No dependencies have known vulnerabilities
 :type: Dependency maintenance
-:risk: Low (auto-approved)
+:risk: Low (auto-executed after notice)
 :features: n/a (project-wide)
 :desired-state: Zero known vulnerabilities in dependency graph
 :prior-state: lodash@4.17.20 with HIGH CVE-2021-23337
+:capabilities-planned: needs-dependencies
 :capabilities-invoked: needs-dependencies
 :constraints-checked: Security (triggered -- resolved), Licensing (pass)
 :result: Achieved
@@ -257,13 +287,8 @@ Detected as constraint because:
 
 === Execute
 
-1. Add to `docs/constraints.adoc` under Security section:
-+
-....
-* All API endpoints must enforce rate limiting at 100 requests per minute per client.
-....
-
-2. Bump `docs/constraints.adoc` version (MINOR)
+1. Add to `docs/constraints.yaml` under Security category with next available ID
+2. Bump `docs/constraints.yaml` version (MINOR). Run `python skills/proven-needs/scripts/validate-constraints.py`
 3. Check existing codebase: current API endpoints do NOT have rate limiting
 4. Report constraint violation to user:
 +
@@ -271,10 +296,10 @@ Detected as constraint because:
 New constraint added. Current violation detected:
   6 API endpoints lack rate limiting.
 
-Would you like to remediate now? This would require updating all route handlers.
+Would you like to remediate now?
 ....
 
-5. If user confirms, derive a transition to add rate limiting middleware (likely touching the product-browsing, shopping-cart, and checkout features at the implementation level).
+5. If user confirms, derive a transition to add rate limiting middleware.
 
 === Record Transition
 
@@ -287,8 +312,9 @@ Would you like to remediate now? This would require updating all route handlers.
 :features: n/a (project-wide constraint)
 :desired-state: Rate limiting enforced on all endpoints
 :prior-state: No rate limiting
+:capabilities-planned: constraints update, needs-implementation (if remediated)
 :capabilities-invoked: (constraint update) + needs-implementation (if remediated)
 :constraints-checked: n/a (this IS a constraint addition)
-:result: Achieved (constraint added, remediation applied)
-:artifacts-modified: docs/constraints.adoc, rate-limiting middleware, route handlers
+:result: Achieved
+:artifacts-modified: docs/constraints.yaml, rate-limiting middleware, route handlers
 ....

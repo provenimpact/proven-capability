@@ -1,6 +1,6 @@
 ---
 name: needs-design
-description: Create and maintain implementation design documents for a feature. Use when the proven-needs orchestrator determines that a feature needs a design created, updated, or synced with upstream changes. Operates within a single feature package at docs/features/<slug>/. The design document is a living document that explains HOW the feature works — the implementation blueprint that solves the user stories, constrained by the specs and project-wide ADRs. It stays in sync with stories and specs throughout the feature's lifecycle. Each feature design is fully independent and can be implemented without reading other feature designs.
+description: Create and maintain implementation design documents for a feature. Use when the proven-needs orchestrator determines that a feature needs a design created, updated, or synced with upstream changes. Operates within a single feature package at docs/features/<slug>/. The design document is a living document that explains HOW the feature works -- the implementation blueprint that solves the top-level linked requirements in spec.yaml, constrained by project-wide ADRs and constraints. It stays in sync with spec.yaml throughout the feature's lifecycle. Each feature design is fully independent and can be implemented without reading other feature designs.
 ---
 
 ## Prerequisites
@@ -13,42 +13,38 @@ During Phase 0 (Research and Decisions), this skill loads the `needs-adr` skill 
 
 Assess the current state of the design for this feature.
 
-### 1. Read feature stories
+### 1. Read feature spec
 
-Read `docs/features/<slug>/user-stories.adoc`. Extract `:version:`, all stories, acceptance criteria.
+Read `docs/features/<slug>/spec.yaml`. Extract:
+- All story IDs, titles, and narratives
+- All requirement IDs, linked story IDs, EARS texts, types, and verifications
+- The feature prefix
 
-**If missing:** Report to the orchestrator that stories are missing. The orchestrator decides whether to create them first.
+**If missing:** Report to the orchestrator that the spec is missing. The orchestrator decides whether to invoke `needs-features` first.
 
-### 2. Read feature spec
-
-Read `docs/features/<slug>/spec.adoc`. Extract `:version:`, all requirement IDs and texts.
-
-**If missing:** Report to the orchestrator that specifications are unavailable. The orchestrator should invoke `needs-spec` first -- every feature gets a specification. As a fallback (e.g., partial transition recovery), the design can proceed with story-level acceptance criteria only. If proceeding without spec: set `:source-spec-version:` to `n/a` in the design output.
-
-### 3. Read project-wide artifacts
+### 2. Read project-wide artifacts
 
 - **`docs/adrs/`** -- read all ADRs with status `Accepted`. These are technology constraints.
-- **`docs/constraints.adoc`** -- read all constraints, particularly architecture and quality constraints.
+- **`docs/constraints.yaml`** -- read all constraints, particularly architecture and quality constraints.
 - **`docs/architecture.adoc`** -- if it exists, understand the current system architecture for context.
 
-### 4. Read existing design
+### 3. Read existing design
 
 If `docs/features/<slug>/design.adoc` exists:
-- Read `:version:`, `:status:`, `:source-stories-version:`, `:source-spec-version:`
+- Read `:version:`, `:source-spec-version:`, `:status:`, `:last-updated:`
 - Read the full design content
 
-### 5. Analyze codebase
+### 4. Analyze codebase
 
 If this is not a greenfield project, analyze the current code structure to understand what already exists. Look at directory structure, key source files, configuration files, and existing patterns.
 
-### 6. Report observation
+### 5. Report observation
 
 Return to the orchestrator:
 ```
 Feature: <slug>
-Stories: {exists: true, version: "X.Y.Z"}
-Spec: {exists: true/false, version: "X.Y.Z"}
-Design: {exists: true/false, version: "X.Y.Z", status: "Current/Stale"}
+Spec: {exists: true/false, version: "X.Y.Z", stories: N, requirements: N}
+Design: {exists: true/false, version: "X.Y.Z", source-spec-version: "X.Y.Z", status: "Current/Stale"}
 ADRs: {count: N, accepted: N}
 Constraints: {count: N, architecture: N, quality: N}
 Codebase: {type: "TypeScript/Next.js", existing-patterns: [...]}
@@ -63,8 +59,8 @@ Given the desired state from the orchestrator, determine what action is needed.
 | Condition | Action |
 |---|---|
 | No design exists | Create new design |
-| Design exists, source versions match current stories and spec | Design appears current. Report to orchestrator. |
-| Design exists, source versions differ | Design is stale. Sync with upstream changes (incremental update or full redesign). |
+| Design exists, `:source-spec-version:` matches current spec version | Design appears current. Report to orchestrator. |
+| Design exists, `:source-spec-version:` differs from spec version | Design is stale. Sync with upstream changes (incremental update or full redesign). |
 
 ### 2. Check constraints
 
@@ -87,7 +83,7 @@ Technology decisions needed: [list or none]
 flowchart TD
     START["Execute design"] --> P0["Phase 0: Research"]
 
-    subgraph phase0 ["Phase 0 — Research and Decisions"]
+    subgraph phase0 ["Phase 0 -- Research and Decisions"]
         P0 --> TECH["Identify technology<br/>decisions needed"]
         P0 --> UNKN["Identify unknowns<br/>and dependencies"]
         P0 --> EXIST["Analyze existing<br/>system (if non-greenfield)"]
@@ -105,26 +101,26 @@ flowchart TD
     EXIST --> P1
 
     P1["Phase 1: Design"]
-    subgraph phase1 ["Phase 1 — Design"]
+    subgraph phase1 ["Phase 1 -- Design"]
         P1 --> SYS["System design<br/>+ Mermaid diagrams"]
         P1 --> DATA["Data model<br/>(if applicable)"]
         P1 --> IFACE["Interface contracts<br/>(if applicable)"]
-        P1 --> STORY["Story resolution<br/>(map stories → design)"]
+        P1 --> REQRES["Requirement resolution<br/>(map reqs -> design)"]
     end
 
     SYS --> WRITE["Write design files"]
     DATA --> WRITE
     IFACE --> WRITE
-    STORY --> WRITE
+    REQRES --> WRITE
 ```
 
 ### Phase 0: Research and Decisions
 
-Analyze all user stories and specs (if available) to identify:
+Analyze the feature spec to identify:
 
-1. **Technology decisions needed** -- for each story, what technology choices are required? Cross-reference against existing ADRs:
-   - "US-003 requires persistent storage -- which database?" (if no ADR exists)
-   - "US-005 requires real-time updates -- WebSocket or SSE?" (if no ADR exists)
+1. **Technology decisions needed** -- for each capability area in the spec, what technology choices are required? Cross-reference against existing ADRs:
+   - "Cart requirements imply persistent storage -- which database?" (if no ADR exists)
+   - "Real-time update requirements imply push mechanism -- WebSocket or SSE?" (if no ADR exists)
 
 2. **Unknowns and dependencies** -- external systems, third-party services, constraints needing clarification.
 
@@ -133,7 +129,7 @@ Analyze all user stories and specs (if available) to identify:
 **For each technology decision not covered by an existing ADR:**
 1. Present the decision to the user with context, alternatives considered, and a recommendation
 2. Ask the user: "Should I create an ADR for this decision?"
-3. **If yes:** Load the `needs-adr` skill and create the ADR before proceeding. The design document will reference the new ADR (e.g., `<<../../adrs/NNNN-decision-title.adoc#,ADR-NNNN>>`).
+3. **If yes:** Load the `needs-adr` skill and create the ADR before proceeding. The design document will reference the new ADR by ID (e.g., `ADR-NNNN: Decision Title -- see docs/adrs/NNNN-decision-title.yaml`).
 4. **If no:** Record the decision in the design's "Decisions and Constraints" section with a brief rationale, but note that it is an unrecorded decision (not an ADR).
 
 **Do NOT skip this step.** Technology decisions made during design are the primary source of ADRs. If Phase 0 identifies decisions and the user agrees to create ADRs, the ADRs must be created before moving to Phase 1, so the design document can reference them.
@@ -144,7 +140,7 @@ Analyze all user stories and specs (if available) to identify:
 
 ### Phase 1: Design
 
-Design the solution that solves the user stories while satisfying the specs (when available) and respecting all constraints.
+Design the solution that satisfies all requirements in the spec while respecting all constraints.
 
 **The design structure is adaptive.** Choose an organization appropriate for the project type. The sections below are guidance, not a rigid template.
 
@@ -181,7 +177,7 @@ The structure depends on the project:
 If the feature involves persistent or structured data:
 - Entities and their attributes
 - Relationships between entities
-- Validation rules derived from specs
+- Validation rules derived from requirements
 - State transitions (if applicable)
 
 Write this to a separate file `docs/features/<slug>/data-model.adoc` when the data model is non-trivial.
@@ -195,14 +191,14 @@ If the feature exposes external interfaces:
 
 Write these to `docs/features/<slug>/contracts/` when relevant.
 
-#### Story resolution
+#### Requirement resolution
 
-For each user story in this feature, describe:
-- **Which components are involved** in solving this story
-- **How the acceptance criteria are met** by the design
-- **Which spec IDs are satisfied** by which design elements (when specs are available)
+For each user story in this feature's `spec.yaml`, describe:
+- **Which components are involved** in solving the story's requirements
+- **How each requirement is satisfied** by the design
+- **Which requirement IDs are covered** by which design elements
 
-This section is the proof that the design solves the stories. Every user story must appear here. When specs are available, every spec ID must be mapped to at least one design element. When specs are not available (`:source-spec-version:` is `n/a`), map acceptance criteria directly to design elements instead.
+This section is the proof that the design solves the requirements. Every story must appear here. Every requirement ID (e.g., `PROD-001`) must be mapped to at least one design element, and shared requirements should be reflected in each applicable story section.
 
 ### Write design files
 
@@ -211,9 +207,8 @@ Create `docs/features/<slug>/design.adoc`:
 ```asciidoc
 = Design: <Feature Name>
 :version: 1.0.0
+:source-spec-version: <spec.yaml version>
 :status: Current
-:source-stories-version: <user-stories version>
-:source-spec-version: <spec version>
 :last-updated: YYYY-MM-DD
 :feature: <slug>
 :toc:
@@ -226,8 +221,8 @@ Create `docs/features/<slug>/design.adoc`:
 
 <References to relevant ADRs. Summary of technology decisions made during Phase 0.>
 
-* <<../../adrs/0001-use-typescript.adoc#,ADR-0001>>: Use TypeScript
-* <<../../adrs/0002-use-postgresql.adoc#,ADR-0002>>: Use PostgreSQL
+* ADR-0001: Use TypeScript (see docs/adrs/0001-use-typescript.yaml)
+* ADR-0002: Use PostgreSQL (see docs/adrs/0002-use-postgresql.yaml)
 
 == Research and Unknowns
 
@@ -242,30 +237,30 @@ Create `docs/features/<slug>/design.adoc`:
  for the primary flow. Add sequence, state, or data flow diagrams
  where they clarify complex interactions.>
 
-== Story Resolution
+== Requirement Resolution
 
-=== US-001: <Title>
+=== US-001: <Story Title>
 
 Components:: <which components are involved>
-Criteria::
-* <acceptance criterion> -> <how the design meets it> (SPEC-ID)
+Requirements::
+* PROD-001: <requirement summary> -> <how the design satisfies it>
+* PROD-002: <requirement summary> -> <how the design satisfies it>
 * ...
 
-=== US-002: <Title>
+=== US-002: <Story Title>
 
 Components:: <which components are involved>
-Criteria::
+Requirements::
 * ...
 ```
 
 **`:status:` values:**
-- `Current` -- design is valid and aligned with stories and specs
-- `Stale` -- upstream stories or specs have changed since this design was created; sync needed
+- `Current` -- design is valid and aligned with spec.yaml
+- `Stale` -- spec.yaml has changed since this design was created; sync needed
 
 **Version rules:**
 - `:version:` uses SemVer, starts at `1.0.0`
-- `:source-stories-version:` records which user stories version was used
-- `:source-spec-version:` records which spec version was used; set to `n/a` if spec was skipped
+- `:source-spec-version:` tracks which spec version was used
 - `:last-updated:` set to today's date
 
 **Additional files (when applicable):**
@@ -274,18 +269,18 @@ Criteria::
 
 ### Sync workflow (when design already exists)
 
-The design is a living document that stays in sync with stories and specs. When upstream artifacts change, the design is updated to reflect the new reality.
+The design is a living document that stays in sync with `spec.yaml`. When the upstream spec changes, the design is updated to reflect the new reality.
 
 ```mermaid
 flowchart TD
-    START["Sync triggered"] --> STALE{"Quick staleness check:<br/>source versions ≠<br/>current versions?"}
+    START["Sync triggered"] --> STALE{"Quick staleness check:<br/>source-spec-version<br/>≠ spec version?"}
 
-    STALE -->|No| CURRENT["Design appears current<br/>→ report to orchestrator"]
+    STALE -->|No| CURRENT["Design appears current<br/>-> report to orchestrator"]
     STALE -->|Yes| DIFF["Content-based<br/>change analysis"]
 
-    DIFF --> NEW["New stories/specs<br/>→ need design coverage"]
-    DIFF --> MOD["Modified stories/specs<br/>→ update design sections"]
-    DIFF --> REM["Removed stories/specs<br/>→ orphaned design sections"]
+    DIFF --> NEW["New requirements<br/>-> need design coverage"]
+    DIFF --> MOD["Modified requirements<br/>-> update design sections"]
+    DIFF --> REM["Removed requirements<br/>-> orphaned design sections"]
 
     NEW --> REPORT["Present change<br/>report to user"]
     MOD --> REPORT
@@ -295,37 +290,35 @@ flowchart TD
     DECIDE -->|Incremental| INCR["Apply incremental<br/>updates"]
     DECIDE -->|Full redesign| FULL["Redesign from<br/>scratch"]
 
-    INCR --> BUMP["Version bump<br/>+ update source versions<br/>+ set status: Current"]
+    INCR --> BUMP["Version bump<br/>+ set status: Current"]
     FULL --> BUMP
 ```
 
 #### Quick staleness check
 
-Compare `:source-stories-version:` and `:source-spec-version:` in `design.adoc` against the current versions of `user-stories.adoc` and `spec.adoc`. If versions match, inform the orchestrator that the design appears current.
+Compare `:source-spec-version:` in `design.adoc` against `version` in `spec.yaml`. If versions match, inform the orchestrator that the design appears current.
 
 #### Content-based change analysis
 
-1. Read current stories and specs
-2. Compare against the design's Story Resolution section
-3. Identify:
-   - **New stories/specs** -- not covered by the design
-   - **Modified stories/specs** -- design elements need updating
-   - **Removed stories/specs** -- design elements are orphaned
+1. Compare the spec's current requirements against the design's Requirement Resolution section
+2. Identify:
+   - **New requirements** -- not covered by the design (new requirement IDs)
+   - **Modified requirements** -- design elements need updating (changed EARS text)
+   - **Removed requirements** -- design elements are orphaned (requirement IDs no longer present)
 
 #### Present change report
 
 ```
-Design sync: stories 1.0.0 -> 1.1.0, spec 1.0.0 -> 1.1.0
+Design sync: spec 1.0.0 -> 1.1.0
 
 Added:
-  - US-003 needs new components and story resolution entry
-  - CART-009, CART-010 need design coverage
+  - PROD-009, PROD-010: new pagination requirements need design coverage
 
 Modified:
-  - US-001 criteria changed -- CartService logic needs revision
+  - PROD-006: requirement text changed -- component logic needs revision
 
 Removed:
-  - US-002 removed -- Cart Page and related design sections orphaned
+  - PROD-004: requirement removed -- sort feature design sections orphaned
 
 Sections unaffected: Technical Context, Decisions and Constraints
 ```
@@ -335,11 +328,11 @@ Ask the user whether to apply incrementally or redesign from scratch.
 #### Apply changes
 
 1. **Preserve stable sections:** Keep design sections unaffected by changes.
-2. **Update affected sections:** Modify design sections impacted by changed stories or specs.
-3. **Remove orphaned sections:** Remove design elements that existed solely for removed stories.
-4. **Update Story Resolution:** Re-map all stories, ensuring every current story and spec ID is accounted for.
+2. **Update affected sections:** Modify design sections impacted by changed requirements.
+3. **Remove orphaned sections:** Remove design elements that existed solely for removed requirements.
+4. **Update Requirement Resolution:** Re-map all requirements, ensuring every current requirement ID is accounted for.
 5. **Bump version:** MAJOR if elements removed, MINOR if added/modified, PATCH if metadata only.
-6. **Update source versions:** Set `:source-stories-version:` and `:source-spec-version:` to current. Set `:status:` to `Current`. Update `:last-updated:`.
+6. **Set `:status:` to `Current`.** Update `:source-spec-version:` and `:last-updated:`.
 
 ### Post-implementation reconciliation
 
@@ -352,9 +345,9 @@ The orchestrator passes:
 **Steps:**
 
 1. For each divergence routed to this skill:
-   a. Locate the relevant design sections (system design, story resolution, data model, contracts)
+   a. Locate the relevant design sections (system design, requirement resolution, data model, contracts)
    b. Update the design to accurately reflect what was built
-   c. Ensure the Story Resolution section still correctly maps stories to design elements
+   c. Ensure the Requirement Resolution section still correctly maps requirements to design elements
 2. Verify that the updated design remains internally consistent (no orphaned references, no contradictions between sections)
 3. Bump version: PATCH if minor clarifications, MINOR if substantive structural changes
 4. Keep `:status:` as `Current` -- the design remains a living document
@@ -363,20 +356,20 @@ The orchestrator passes:
 ## Quality Checklist
 
 Before finalizing, verify:
-- Every user story in this feature is addressed in Story Resolution
-- Every spec ID is mapped to at least one design element (skip if `:source-spec-version:` is `n/a`)
+- Every user story from the spec is addressed in Requirement Resolution
+- Every requirement ID is mapped to at least one design element
 - All ADR decisions are respected in the design
-- All architecture constraints from `docs/constraints.adoc` are satisfied
+- All architecture constraints from `docs/constraints.yaml` are satisfied
 - No unresolved unknowns remain (or are explicitly listed)
 - Design is implementable (specific enough to code from)
 - Design does not depend on other feature designs
-- Source versions are recorded correctly
-- Data model covers all entities implied by the stories (if applicable)
-- Interface contracts match the spec requirements (if applicable)
+- Data model covers all entities implied by the requirements (if applicable)
+- Interface contracts match the requirement expectations (if applicable)
 - At least one Mermaid component interaction diagram is included in System Design
 - Diagrams accurately reflect the components and flows described in prose
 - Sequence diagrams cover the primary user flow (when the flow involves multiple components)
+- `:source-spec-version:` matches the spec's current version
 
 ## Reference
 
-See `references/example.adoc` for a complete example showing how a feature's stories and specs become a design document with story resolution mapping.
+See `references/example.adoc` for a complete example showing how a feature's requirements become a design document with requirement resolution mapping.
