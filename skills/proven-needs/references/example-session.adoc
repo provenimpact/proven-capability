@@ -205,7 +205,7 @@ The existing `In Progress` state-log entry is updated to `Achieved` after the us
 
 ---
 
-== Session 2: Maintenance Intent (Auto-Approve)
+== Session 2: Maintenance Intent (Low-Risk Auto-Execution)
 
 === User Intent (system-detected)
 
@@ -222,12 +222,17 @@ Constraint status: VIOLATED
 Intent type: **Dependency maintenance**
 Risk: **Low** (patch update available: lodash@4.17.21)
 
-=== Auto-Approve
+=== Low-Risk Auto-Execution
 
-This qualifies for auto-approval because:
+This qualifies for low-risk auto-execution because:
 - Patch-level update (4.17.20 -> 4.17.21)
 - Resolves a constraint violation
 - Low risk of breaking changes
+
+....
+Low-risk transition detected: patch dependency update available for lodash.
+I am applying it now unless you want to inspect the plan first.
+....
 
 === Execute
 
@@ -240,7 +245,7 @@ This qualifies for auto-approval because:
 === Report
 
 ....
-Auto-approved: Updated lodash 4.17.20 -> 4.17.21 (CVE-2021-23337 resolved).
+Auto-executed after concise notice: Updated lodash 4.17.20 -> 4.17.21 (CVE-2021-23337 resolved).
 Build passing. Tests passing. No remaining vulnerabilities.
 ....
 
@@ -251,7 +256,7 @@ Build passing. Tests passing. No remaining vulnerabilities.
 :date: 2026-02-24
 :intent: No dependencies have known vulnerabilities
 :type: Dependency maintenance
-:risk: Low (auto-approved)
+:risk: Low (auto-executed after notice)
 :features: n/a (project-wide)
 :desired-state: Zero known vulnerabilities in dependency graph
 :prior-state: lodash@4.17.20 with HIGH CVE-2021-23337

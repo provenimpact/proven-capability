@@ -113,7 +113,7 @@ Independent features can be processed concurrently.
 
 ### Artifact Traceability
 
-Each capability reads upstream artifacts and writes its own.
+Each capability and the orchestrator read upstream artifacts and write the artifacts they own.
 
 #### Artifact Ownership (writes)
 
@@ -129,10 +129,11 @@ flowchart LR
     end
 
     subgraph project ["Project-wide"]
+        PN["proven-needs"] --> ORCH[("docs/state-log.adoc<br/>docs/constraints.yaml")]
         NARCH["needs-architecture"] --> ARCH[("architecture.adoc")]
         NDEPS["needs-dependencies"] --> DEPS[("package manifests<br/>lockfiles")]
         NSEC["needs-security"] --> CODE2[("source code")]
-        NCOMP["needs-compliance"] --> DEPS2[("package manifests")]
+        NCOMP["needs-compliance"] --> DEPS2[("package manifests<br/>docs/constraints.yaml")]
     end
 
     style feature fill:transparent,stroke:#555,stroke-width:1px
@@ -151,6 +152,7 @@ flowchart LR
 | `needs-dependencies` | package manifests, `docs/constraints.yaml` | package manifests, lockfiles |
 | `needs-security` | codebase, dependencies, config, `docs/constraints.yaml` | source code, config |
 | `needs-compliance` | dependencies, `docs/constraints.yaml` | dependencies, `docs/constraints.yaml` |
+| `proven-needs` | current project state, `docs/state-log.adoc`, `docs/constraints.yaml` | `docs/state-log.adoc`, confirmed project-wide constraint updates in `docs/constraints.yaml` |
 
 ## Entry Point
 
@@ -167,6 +169,8 @@ The orchestrator will:
 4. Resolve any design divergences (user decides: update design or fix code)
 5. Record technology decisions as ADRs along the way
 6. Update the architecture document when all features are implemented
+
+The orchestrator does not write feature-scoped delivery artifacts directly, but it does own transition bookkeeping in `docs/state-log.adoc` and confirmed project-wide constraint updates in `docs/constraints.yaml`.
 
 ## Core Concepts
 
@@ -361,11 +365,11 @@ Templates live at `skills/proven-needs/scripts/templates/` and can be customized
 
 ## Risk Classification
 
-Transitions are auto-approved or require confirmation based on risk:
+Transitions either auto-execute after a concise notice or require approval based on risk:
 
-| Risk | Auto-approve? | Examples |
+| Risk | Execution rule | Examples |
 |---|---|---|
-| **Low** | Yes | Patch dependency updates, metadata fixes |
+| **Low** | Concise notice, then auto-execute | Patch dependency updates, metadata fixes |
 | **Medium** | Propose, ask | Minor dependency updates, design syncs |
 | **High** | Full plan, require approval | New features, architecture changes, code changes |
 
